@@ -3,8 +3,11 @@
 設計仕様書 2.1 users テーブルに準拠
 """
 
+from __future__ import annotations
+
 import uuid
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -12,6 +15,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from core.database import Base
+
+if TYPE_CHECKING:
+    from models.department import Department
+    from models.role import UserRole
 
 
 class User(Base):

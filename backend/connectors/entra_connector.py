@@ -105,7 +105,7 @@ class EntraIDConnector:
 
     async def enable_pim_role(self, user_id: str, role_id: str, duration_hours: int = 8) -> dict:
         """PIM 特権ロールの時限付き有効化（MFA-004）"""
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timezone
 
         payload = {
             "principalId": user_id,

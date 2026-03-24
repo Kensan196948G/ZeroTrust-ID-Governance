@@ -3,15 +3,21 @@
 設計仕様書 2.1 roles テーブルに準拠
 """
 
+from __future__ import annotations
+
 import uuid
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Interval, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Interval, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from core.database import Base
+
+if TYPE_CHECKING:
+    from models.user import User
 
 
 class Role(Base):
@@ -54,13 +60,12 @@ class UserRole(Base):
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        # ForeignKey は循環インポート回避のため文字列で指定
-        __import__("sqlalchemy").ForeignKey("users.id"),
+        ForeignKey("users.id"),
         nullable=False,
     )
     role_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        __import__("sqlalchemy").ForeignKey("roles.id"),
+        ForeignKey("roles.id"),
         nullable=False,
     )
     granted_at: Mapped[datetime] = mapped_column(

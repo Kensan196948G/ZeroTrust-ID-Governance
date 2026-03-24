@@ -15,7 +15,6 @@ from fastapi.responses import JSONResponse
 
 from api.v1 import access, audit, roles, users, workflows
 from core.config import settings
-from core.database import engine
 from models import base  # noqa: F401 – テーブル登録のため必要
 
 logger = structlog.get_logger(__name__)
