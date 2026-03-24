@@ -115,3 +115,72 @@ class TestRoleLimit:
         decision = engine.evaluate_access(request)
         assert not decision.allowed
         assert "上限" in decision.reason
+
+    def test_exactly_at_limit_is_denied(self, engine: PolicyEngine) -> None:
+        """上限ちょうど（10個保持中）は追加拒否"""
+        request = AccessRequest(
+            user_id="u",
+            requested_role="Role10",
+            current_roles=[f"Role{i}" for i in range(10)],
+        )
+        decision = engine.evaluate_access(request)
+        assert not decision.allowed
+
+    def test_one_below_limit_is_allowed(self, engine: PolicyEngine) -> None:
+        """上限未満（9個保持中）は追加許可"""
+        request = AccessRequest(
+            user_id="u",
+            requested_role="ReadOnly",
+            current_roles=[f"Role{i}" for i in range(9)],
+            mfa_verified=True,
+        )
+        decision = engine.evaluate_access(request)
+        assert decision.allowed
+
+
+class TestFinanceSoD:
+    """財務系 SoD テスト（ISO27001 A.5.3 職務の分離）"""
+
+    def test_finance_user_cannot_be_finance_auditor(self, engine: PolicyEngine) -> None:
+        """財務ユーザは財務監査者を兼務不可"""
+        request = AccessRequest(
+            user_id="finance-user",
+            requested_role="FinanceAuditor",
+            current_roles=["FinanceUser"],
+        )
+        decision = engine.evaluate_access(request)
+        assert not decision.allowed
+        assert len(decision.sod_conflicts) > 0
+
+    def test_user_admin_cannot_audit_admin(self, engine: PolicyEngine) -> None:
+        """ユーザ管理者は監査管理者を兼務不可"""
+        request = AccessRequest(
+            user_id="admin-user",
+            requested_role="AuditAdmin",
+            current_roles=["UserAdmin"],
+        )
+        decision = engine.evaluate_access(request)
+        assert not decision.allowed
+
+    def test_security_admin_requires_mfa(self, engine: PolicyEngine) -> None:
+        """SecurityAdmin は MFA 必須"""
+        request = AccessRequest(
+            user_id="sec-user",
+            requested_role="SecurityAdmin",
+            current_roles=[],
+            mfa_verified=False,
+        )
+        decision = engine.evaluate_access(request)
+        assert not decision.allowed
+        assert any("MFA" in c for c in decision.required_conditions)
+
+    def test_security_admin_allowed_with_mfa(self, engine: PolicyEngine) -> None:
+        """SecurityAdmin は MFA があれば付与可能"""
+        request = AccessRequest(
+            user_id="sec-user",
+            requested_role="SecurityAdmin",
+            current_roles=[],
+            mfa_verified=True,
+        )
+        decision = engine.evaluate_access(request)
+        assert decision.allowed
