@@ -1,0 +1,180 @@
+name: 🔐 ClaudeOS CI - ZeroTrust ID Governance
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
+jobs:
+  # ===================================
+  # バックエンド CI
+  # ===================================
+  backend-ci:
+    name: 🔧 Backend (FastAPI)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zerotrust_id_test
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: testpassword
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: 📦 Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: 🔍 Lint (ruff)
+        working-directory: backend
+        run: ruff check . --output-format=github
+
+      - name: 🔍 Type check (mypy)
+        working-directory: backend
+        run: mypy . --ignore-missing-imports
+        continue-on-error: true
+
+      - name: 🧪 Test
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://admin:testpassword@localhost:5432/zerotrust_id_test
+          REDIS_URL: redis://localhost:6379/0
+          JWT_SECRET_KEY: test-secret-key
+          APP_ENV: test
+        run: |
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing
+
+      - name: 📊 Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: backend/coverage.xml
+          flags: backend
+        continue-on-error: true
+
+  # ===================================
+  # フロントエンド CI
+  # ===================================
+  frontend-ci:
+    name: 🎨 Frontend (Next.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: 🔍 Lint (ESLint)
+        working-directory: frontend
+        run: npm run lint
+
+      - name: 🔍 Type check
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: 🏗️ Build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+        run: npm run build
+
+  # ===================================
+  # セキュリティスキャン
+  # ===================================
+  security-scan:
+    name: 🔴 Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔐 Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "secret,vuln"
+          severity: "HIGH,CRITICAL"
+          format: "table"
+        continue-on-error: true
+
+      - name: 🔐 Python safety check
+        run: |
+          pip install safety
+          safety check -r backend/requirements.txt || true
+        continue-on-error: true
+
+  # ===================================
+  # CI 結果判定（STABLE 評価用）
+  # ===================================
+  ci-gate:
+    name: ✅ CI Gate (STABLE判定)
+    needs: [backend-ci, frontend-ci, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: 判定
+        env:
+          BACKEND_RESULT: ${{ needs.backend-ci.result }}
+          FRONTEND_RESULT: ${{ needs.frontend-ci.result }}
+          SECURITY_RESULT: ${{ needs.security-scan.result }}
+        run: |
+          echo "Backend CI: $BACKEND_RESULT"
+          echo "Frontend CI: $FRONTEND_RESULT"
+          echo "Security: $SECURITY_RESULT"
+
+          if [[ "$BACKEND_RESULT" == "success" && "$FRONTEND_RESULT" == "success" ]]; then
+            echo "CI PASSED - STABLE候補"
+            exit 0
+          else
+            echo "CI FAILED - 修復が必要"
+            exit 1
+          fi
+
+      - name: CI失敗通知
+        if: failure()
+        run: |
+          echo "CI_FAILED=true" >> "$GITHUB_ENV"
+          echo "Auto Repair Loop をトリガーしてください"
