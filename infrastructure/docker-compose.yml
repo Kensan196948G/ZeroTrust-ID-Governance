@@ -1,0 +1,136 @@
+version: '3.9'
+
+# ===================================
+# ZeroTrust-ID-Governance 開発環境
+# ===================================
+
+services:
+  # --- バックエンド API (FastAPI) ---
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ztid-backend
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql://admin:password@db:5432/zerotrust_id
+      - REDIS_URL=redis://redis:6379/0
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+      - AD_SERVER=${AD_SERVER:-ldaps://dc01.mirai.local}
+      - AD_BIND_DN=${AD_BIND_DN:-}
+      - AD_BIND_PASSWORD=${AD_BIND_PASSWORD:-}
+      - HENGEONE_API_TOKEN=${HENGEONE_API_TOKEN:-}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ../backend:/app
+    restart: unless-stopped
+    networks:
+      - ztid-network
+
+  # --- フロントエンド (Next.js) ---
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: ztid-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_APP_NAME=ZeroTrust ID Governance
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+    networks:
+      - ztid-network
+
+  # --- PostgreSQL ---
+  db:
+    image: postgres:16-alpine
+    container_name: ztid-db
+    environment:
+      POSTGRES_DB: zerotrust_id
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d zerotrust_id"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ztid-network
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    container_name: ztid-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes
+    networks:
+      - ztid-network
+
+  # --- Celery Worker (非同期タスク) ---
+  celery_worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ztid-celery
+    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - DATABASE_URL=postgresql://admin:password@db:5432/zerotrust_id
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ../backend:/app
+    networks:
+      - ztid-network
+
+  # --- Celery Beat (スケジューラ) ---
+  celery_beat:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ztid-celery-beat
+    command: celery -A tasks.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://admin:password@db:5432/zerotrust_id
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - celery_worker
+    volumes:
+      - ../backend:/app
+    networks:
+      - ztid-network
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  ztid-network:
+    driver: bridge

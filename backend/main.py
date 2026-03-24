@@ -1,0 +1,99 @@
+"""
+ZeroTrust-ID-Governance バックエンド API
+FastAPI アプリケーションエントリーポイント
+
+準拠: ISO27001 A.5.15〜A.8.2 / NIST CSF PROTECT PR.AA
+"""
+
+from contextlib import asynccontextmanager
+
+import structlog
+from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+
+from api.v1 import access, audit, roles, users, workflows
+from core.config import settings
+from models import base  # noqa: F401 – テーブル登録のため必要
+
+logger = structlog.get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """アプリケーション起動・終了時の処理"""
+    logger.info("Starting ZeroTrust-ID-Governance API", version=settings.APP_VERSION)
+    yield
+    logger.info("Shutting down ZeroTrust-ID-Governance API")
+
+
+app = FastAPI(
+    title="ZeroTrust-ID-Governance API",
+    description="""
+## ゼロトラスト ID統合ガバナンスシステム
+
+EntraID Connect × HENGEONE × AD 統合アイデンティティ管理プラットフォーム
+
+### 準拠規格
+- ISO27001:2022 A.5.15〜A.8.2
+- NIST CSF 2.0 PROTECT PR.AA
+- ISO20000-1:2018 アクセス管理
+""",
+    version=settings.APP_VERSION,
+    docs_url="/api/docs" if settings.APP_ENV != "production" else None,
+    redoc_url="/api/redoc" if settings.APP_ENV != "production" else None,
+    lifespan=lifespan,
+)
+
+# --- ミドルウェア設定 ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.ALLOWED_HOSTS,
+)
+
+
+# --- グローバル例外ハンドラ ---
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error(
+        "Unhandled exception",
+        path=request.url.path,
+        method=request.method,
+        error=str(exc),
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "data": None,
+            "errors": [{"message": "Internal server error"}],
+        },
+    )
+
+
+# --- ルーター登録 ---
+app.include_router(users.router, prefix="/api/v1", tags=["Users"])
+app.include_router(roles.router, prefix="/api/v1", tags=["Roles"])
+app.include_router(access.router, prefix="/api/v1", tags=["Access Requests"])
+app.include_router(workflows.router, prefix="/api/v1", tags=["Workflows"])
+app.include_router(audit.router, prefix="/api/v1", tags=["Audit Logs"])
+
+
+# --- ヘルスチェック ---
+@app.get("/health", tags=["System"])
+@app.get("/api/v1/health", tags=["System"])
+async def health_check() -> dict:
+    return {
+        "status": "ok",
+        "version": settings.APP_VERSION,
+        "env": settings.APP_ENV,
+    }
