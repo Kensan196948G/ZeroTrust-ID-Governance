@@ -4,14 +4,14 @@ SCIM 2.0 プロトコルによる連携
 設計仕様書 4.3 準拠
 """
 
-import logging
+import structlog
 
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class HengeOneConnector:

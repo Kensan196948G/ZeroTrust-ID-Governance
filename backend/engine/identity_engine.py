@@ -4,13 +4,13 @@ EntraID / AD / HENGEONE の統合プロビジョニング調整
 設計仕様書 5.2 準拠（ILM-001, ILM-002, ILM-003）
 """
 
-import logging
+import structlog
 
 from connectors.ad_connector import ADConnector
 from connectors.entra_connector import EntraIDConnector
 from connectors.hengeone_connector import HengeOneConnector
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class IdentityEngine:

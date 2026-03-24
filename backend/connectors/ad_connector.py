@@ -4,14 +4,14 @@ ldap3 ライブラリを用いた AD 連携
 設計仕様書 4.2 準拠
 """
 
-import logging
+import structlog
 
 import ldap3
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # userAccountControl 定数
 UAC_NORMAL = "512"        # 有効

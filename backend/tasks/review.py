@@ -6,6 +6,7 @@
 import logging
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from celery import shared_task
 from sqlalchemy import select
@@ -37,7 +38,7 @@ def start_quarterly_review(self) -> dict:
 
     logger.info("Quarterly account review started")
 
-    results = {
+    results: dict[str, Any] = {
         "reviewed_users": 0,
         "inconsistencies": [],
         "expired_roles_removed": 0,
@@ -48,7 +49,7 @@ def start_quarterly_review(self) -> dict:
 
     with SyncSessionLocal() as db:
         # アクティブユーザ一覧
-        users = db.execute(select(User).where(User.is_active == True)).scalars().all()  # noqa: E712
+        users = db.execute(select(User).where(User.account_status == "active")).scalars().all()
 
         identity_engine = IdentityEngine()
         policy_engine = PolicyEngine()
@@ -109,7 +110,7 @@ def start_quarterly_review(self) -> dict:
         last_log = db.execute(
             select(AuditLog).order_by(AuditLog.id.desc()).limit(1)
         ).scalar_one_or_none()
-        previous_hash = last_log.hash if last_log else None
+        previous_hash = (last_log.hash or "") if last_log else ""
 
         summary = {
             "reviewed_users": results["reviewed_users"],
