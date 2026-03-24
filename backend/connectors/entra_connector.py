@@ -4,16 +4,16 @@ Microsoft Graph API を通じた Entra ID 連携
 設計仕様書 4.1 準拠
 """
 
-import logging
 import secrets
 import string
 
+import structlog
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 M365_E3_SKU = "05e9a617-0261-4cee-bb44-138d3ef5d965"  # Microsoft 365 E3
 
