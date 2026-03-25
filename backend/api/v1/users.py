@@ -11,6 +11,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.auth import CurrentUser, get_current_user, require_role
 from core.database import get_db
 from models.user import User
 
@@ -66,6 +67,7 @@ async def list_users(
     user_type: str | None = Query(default=None),
     account_status: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> dict:
     """全ユーザ一覧を取得（ページネーション付き）"""
     query = select(User)
@@ -92,6 +94,7 @@ async def list_users(
 async def create_user(
     payload: UserCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
 ) -> dict:
     """新規ユーザを作成し、非同期プロビジョニングタスクをキュー投入"""
     from datetime import date
@@ -122,7 +125,11 @@ async def create_user(
 
 
 @router.get("/users/{user_id}", summary="ユーザ詳細取得")
-async def get_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+async def get_user(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -135,6 +142,7 @@ async def update_user(
     user_id: uuid.UUID,
     payload: UserUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
 ) -> dict:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -150,7 +158,11 @@ async def update_user(
 
 
 @router.delete("/users/{user_id}", summary="ユーザ無効化（論理削除）")
-async def disable_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+async def disable_user(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     """退職処理：アカウントを無効化（物理削除は行わない）"""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

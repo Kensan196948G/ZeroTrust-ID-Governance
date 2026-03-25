@@ -69,8 +69,8 @@ async def get_current_user(
     return CurrentUser(user_id=user_id, roles=roles, email=email)
 
 
-async def require_role(required_role: str):
-    """特定ロールを必須とする Dependency ファクトリ
+def require_role(required_role: str):
+    """特定ロールを必須とする Dependency ファクトリ（sync 関数）
 
     Usage:
         @router.delete("/users/{id}")
