@@ -216,7 +216,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: "\U0001F4E6 Install Newman"
-        run: npm install -g newman newman-reporter-junit
+        run: npm install -g newman
 
       - name: "\U0001F9EA Run Newman E2E tests"
         run: |
