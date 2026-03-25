@@ -16,6 +16,8 @@ from fastapi.responses import JSONResponse
 from api.v1 import access, audit, auth, roles, users, workflows
 from core.audit_middleware import AuditLoggingMiddleware
 from core.config import settings
+from core.rate_limit_middleware import RateLimitMiddleware
+from core.security_headers_middleware import SecurityHeadersMiddleware
 from models import base  # noqa: F401 – テーブル登録のため必要
 
 logger = structlog.get_logger(__name__)
@@ -60,6 +62,13 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=settings.ALLOWED_HOSTS,
 )
+
+# HTTP セキュリティヘッダー付与（ISO27001 A.8.22 / NIST CSF PR.PT-3）
+# ※ 最外層に置くことで全レスポンスに適用
+app.add_middleware(SecurityHeadersMiddleware)
+
+# レート制限（ISO27001 A.8.3 / NIST CSF PR.AC-7）
+app.add_middleware(RateLimitMiddleware)
 
 # 監査ログ自動記録（ISO27001 A.8.15 / NIST CSF DE.CM-01）
 # ※ TrustedHostMiddleware より内側に置くことで信頼済みホストのみ記録
