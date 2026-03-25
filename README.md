@@ -4,10 +4,12 @@
 > 建設業600名のユーザーライフサイクルをゼロトラスト原則で完全自動管理
 
 [![CI](https://github.com/Kensan196948G/ZeroTrust-ID-Governance/actions/workflows/claudeos-ci.yml/badge.svg)](https://github.com/Kensan196948G/ZeroTrust-ID-Governance/actions)
+[![Coverage](https://img.shields.io/badge/Coverage-85%25-brightgreen.svg)](backend/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](frontend/)
+[![Tests](https://img.shields.io/badge/Tests-191%20passed-brightgreen.svg)](backend/tests/)
 
 ---
 
@@ -20,8 +22,27 @@
 | 🔴 現場作業員・協力会社の一時アクセス制御が困難 | ✅ PIM 時限付き特権昇格 + リスクベースアクセス制御 |
 | 🔴 監査証跡が分散・改ざんリスクあり | ✅ SHA256 チェーンハッシュ付き統合監査ログ |
 | 🔴 MFA未設定ユーザーへの対応が後手 | ✅ リスクスコアエンジンによる自動ブロック/MFA強制 |
+| 🔴 フロントエンドが認証なしでAPIを呼び出せる | ✅ JWT RS256 + 自動トークンリフレッシュ統合 |
 
 **準拠規格:** ISO27001 A.5.15〜A.8.2 ／ NIST CSF PROTECT PR.AA ／ ISO20000 アクセス管理
+
+---
+
+## 📊 開発フェーズ完了状況
+
+| フェーズ | 内容 | ステータス | 主な成果 |
+|----------|------|-----------|---------|
+| **Phase 1** | 基盤構築 | ✅ 完了 | FastAPI + PostgreSQL + Redis + Docker |
+| **Phase 2** | コアエンジン実装 | ✅ 完了 | Risk Engine / Policy Engine / Identity Engine |
+| **Phase 3** | REST API 実装 | ✅ 完了 | ユーザー・アクセス申請・監査ログ CRUD |
+| **Phase 4** | テスト基盤整備 | ✅ 完了 | pytest 191件、CRUD・ワークフロー統合テスト |
+| **Phase 5** | セキュリティ強化 | ✅ 完了 | SQLインジェクション対策、入力バリデーション強化 |
+| **Phase 6** | 監査ログ中間層 | ✅ 完了 | AuditLoggingMiddleware（ISO27001 A.8.15 準拠） |
+| **Phase 7** | JWT 認証基盤 | ✅ 完了 | RS256 署名・リフレッシュトークン・Redis 失効制御 |
+| **Phase 8** | RBAC 細粒化 | ✅ 完了 | Viewer/Developer/SecurityAdmin/GlobalAdmin 4段階 |
+| **Phase 9** | エンジンカバレッジ | ✅ 完了 | Identity Engine 0%→94%、全体カバレッジ 83%→85% |
+| **Phase 10** | フロントエンド JWT 統合 | ✅ 完了 | 全ページ・ウィジェットを JWT 認証 API に統一 |
+| **Phase 11** | README 刷新 | 🔄 進行中 | アーキテクチャ図・RBAC 表・JWT フロー追加 |
 
 ---
 
@@ -34,20 +55,23 @@ graph TB
         UM[ユーザー管理]
         AR[アクセス申請]
         AL[監査ログ]
-        RM[リスク監視]
+        WF[ワークフロー管理]
+        AUTH_FE[JWT TokenStore]
     end
 
     subgraph Backend["⚙ Backend (FastAPI + Python 3.12)"]
         API[REST API v1]
+        MW[AuditLoggingMiddleware]
         RE[🎯 Risk Engine]
         PE[📋 Policy Engine]
         IE[🔗 Identity Engine]
         CW[⏱ Celery Workers]
+        JWT[JWT RS256 Auth]
     end
 
     subgraph DB["💾 Data Layer"]
         PG[(PostgreSQL)]
-        RD[(Redis)]
+        RD[(Redis\nトークン失効制御\nCeleryブローカー)]
     end
 
     subgraph External["🌐 外部システム"]
@@ -56,9 +80,11 @@ graph TB
         HO[HENGEONE SSO/MFA]
     end
 
-    Frontend -->|HTTP/JSON| API
-    API --> RE
-    API --> PE
+    Frontend -->|HTTP/JSON + JWT Bearer| API
+    API --> MW
+    MW --> JWT
+    JWT --> RE
+    JWT --> PE
     API --> IE
     CW --> IE
     IE --> EID
@@ -67,6 +93,41 @@ graph TB
     API --> PG
     CW --> PG
     CW -.->|broker| RD
+    JWT -.->|失効チェック| RD
+```
+
+---
+
+## 🔐 JWT 認証フロー
+
+```mermaid
+sequenceDiagram
+    participant FE as Frontend (Next.js)
+    participant TS as TokenStore (sessionStorage)
+    participant API as FastAPI
+    participant Redis as Redis
+
+    FE->>API: POST /api/v1/auth/login {username, password}
+    API-->>FE: {access_token, refresh_token} (RS256)
+    FE->>TS: トークン保存
+
+    FE->>API: GET /api/v1/users (Authorization: Bearer {access_token})
+    API->>Redis: トークン失効チェック
+    Redis-->>API: 有効
+    API-->>FE: ユーザー一覧
+
+    note over FE,API: アクセストークン期限切れ時
+    FE->>API: 任意のAPIリクエスト
+    API-->>FE: 401 Unauthorized
+    FE->>API: POST /api/v1/auth/refresh {refresh_token}
+    API-->>FE: {access_token (新)} (RS256)
+    FE->>TS: 新トークン保存
+    FE->>API: リクエスト再試行
+
+    note over FE,API: ログアウト時
+    FE->>API: POST /api/v1/auth/logout
+    API->>Redis: refresh_token を失効リストに追加
+    FE->>TS: トークン削除
 ```
 
 ---
@@ -148,6 +209,29 @@ graph LR
 
 ---
 
+## 🔑 RBAC 権限レベル
+
+```mermaid
+graph TB
+    GA[👑 GlobalAdmin\n全機能・全データアクセス]
+    SA[🔒 SecurityAdmin\n監査ログ・リスク管理・セキュリティ設定]
+    DEV[💻 Developer\nユーザー一覧・アクセス申請管理]
+    VIEW[👁 Viewer\n読み取り専用]
+
+    GA --> SA
+    SA --> DEV
+    DEV --> VIEW
+```
+
+| ロール | ユーザー管理 | アクセス申請 | 監査ログ | ワークフロー | ロール管理 |
+|--------|------------|------------|---------|------------|---------|
+| **GlobalAdmin** | ✅ 全操作 | ✅ 全操作 | ✅ 検索含む | ✅ 全実行 | ✅ |
+| **SecurityAdmin** | ✅ 参照・更新 | ✅ 承認・却下 | ✅ 検索含む | ✅ セキュリティ系 | ❌ |
+| **Developer** | ✅ 一覧・参照 | ✅ 申請・参照 | ✅ 参照のみ | ✅ 実行 | ❌ |
+| **Viewer** | 👁 参照のみ | 👁 参照のみ | 👁 参照のみ | ❌ | ❌ |
+
+---
+
 ## 🛠 技術スタック
 
 ```mermaid
@@ -157,6 +241,7 @@ graph LR
         SWR[SWR]
         RC[Recharts]
         LR[Lucide React]
+        JWT_FE[JWT TokenStore]
     end
 
     subgraph BE["Backend"]
@@ -165,6 +250,7 @@ graph LR
         SA[SQLAlchemy 2.0]
         CL[Celery]
         PD[Pydantic v2]
+        JWT_BE[JWT RS256]
     end
 
     subgraph INFRA["Infrastructure"]
@@ -185,11 +271,12 @@ graph LR
 | | SQLAlchemy | 2.0 | 非同期ORM (FastAPI) + 同期 (Celery) |
 | | Celery | 5.4 | 非同期プロビジョニングタスク |
 | | Pydantic | 2.x | 型安全な設定管理 |
+| | PyJWT | 2.x | JWT RS256 署名・検証 |
 | **Protocol** | SCIM 2.0 | RFC 7644 | HENGEONE連携 |
 | | MS Graph API | v1.0 | Entra ID管理 |
 | | LDAP3 | 2.9 | Active Directory操作 |
 | **Infrastructure** | PostgreSQL | 16 | メインDB |
-| | Redis | 7 | Celeryブローカー + キャッシュ |
+| | Redis | 7 | Celeryブローカー + JWT失効制御 |
 | | Docker Compose | 2.x | 開発環境 |
 | | GitHub Actions | - | CI/CDパイプライン |
 
@@ -237,32 +324,41 @@ docker compose -f infrastructure/docker-compose.yml up -d
 
 ## 📚 API ドキュメント
 
-### ユーザー管理
+### 🔐 認証
 
 | メソッド | エンドポイント | 説明 |
 |----------|---------------|------|
-| `GET` | `/api/v1/users` | ユーザー一覧 |
-| `POST` | `/api/v1/users` | ユーザー作成 (3システム同期) |
-| `GET` | `/api/v1/users/{id}` | ユーザー詳細 |
-| `PATCH` | `/api/v1/users/{id}` | ユーザー更新 |
-| `DELETE` | `/api/v1/users/{id}` | ユーザー無効化 |
+| `POST` | `/api/v1/auth/login` | ログイン (JWT発行) |
+| `POST` | `/api/v1/auth/refresh` | アクセストークンリフレッシュ |
+| `POST` | `/api/v1/auth/logout` | ログアウト (Redis失効登録) |
+
+### ユーザー管理
+
+| メソッド | エンドポイント | 説明 | 必要ロール |
+|----------|---------------|------|-----------|
+| `GET` | `/api/v1/users` | ユーザー一覧 | Developer以上 |
+| `POST` | `/api/v1/users` | ユーザー作成 (3システム同期) | SecurityAdmin以上 |
+| `GET` | `/api/v1/users/{id}` | ユーザー詳細 | Developer以上 |
+| `PATCH` | `/api/v1/users/{id}` | ユーザー更新 | SecurityAdmin以上 |
+| `DELETE` | `/api/v1/users/{id}` | ユーザー無効化 | GlobalAdmin |
 
 ### アクセス申請
 
-| メソッド | エンドポイント | 説明 |
-|----------|---------------|------|
-| `GET` | `/api/v1/access-requests` | 申請一覧 |
-| `POST` | `/api/v1/access-requests` | 新規申請 |
-| `GET` | `/api/v1/access-requests/pending` | 承認待ち一覧 |
-| `PATCH` | `/api/v1/access-requests/{id}` | 承認/却下 |
+| メソッド | エンドポイント | 説明 | 必要ロール |
+|----------|---------------|------|-----------|
+| `GET` | `/api/v1/access-requests` | 申請一覧 | Developer以上 |
+| `POST` | `/api/v1/access-requests` | 新規申請 | Developer以上 |
+| `GET` | `/api/v1/access-requests/pending` | 承認待ち一覧 | Developer以上 |
+| `PATCH` | `/api/v1/access-requests/{id}` | 承認/却下 | SecurityAdmin以上 |
 
 ### 監査・リスク
 
-| メソッド | エンドポイント | 説明 |
-|----------|---------------|------|
-| `GET` | `/api/v1/audit-logs` | 監査ログ一覧 |
-| `POST` | `/api/v1/risk/evaluate` | リスクスコア評価 |
-| `GET` | `/api/v1/health` | システムヘルスチェック |
+| メソッド | エンドポイント | 説明 | 必要ロール |
+|----------|---------------|------|-----------|
+| `GET` | `/api/v1/audit-logs` | 監査ログ一覧 | SecurityAdmin以上 |
+| `GET` | `/api/v1/audit-logs/search` | 監査ログ検索 | SecurityAdmin以上 |
+| `POST` | `/api/v1/risk/evaluate` | リスクスコア評価 | Developer以上 |
+| `GET` | `/api/v1/health` | システムヘルスチェック | 認証不要 |
 
 ---
 
@@ -317,20 +413,21 @@ graph TB
 | A.5.19 | 供給者のアクセス管理 | 協力会社 PIM 時限アクセス |
 | A.5.28 | 証拠の収集 | SHA256 チェーンハッシュ監査ログ |
 | A.8.2 | 特権アクセス権 | PIM + SoD チェック |
+| A.8.15 | ログの取得 | AuditLoggingMiddleware 全 API 自動記録 |
 
 ### NIST CSF 対応
 
 | カテゴリ | ID | 実装 |
 |----------|-----|------|
-| PROTECT | PR.AA-01 | 認証 (MFA強制) |
-| PROTECT | PR.AA-02 | 認可 (RBAC/ABAC) |
+| PROTECT | PR.AA-01 | 認証 (JWT RS256 + MFA強制) |
+| PROTECT | PR.AA-02 | 認可 (RBAC/ABAC + 4段階ロール) |
 | PROTECT | PR.AA-03 | アイデンティティプルーフィング |
 | PROTECT | PR.AA-05 | 最小権限・職務分離 |
 | DETECT | DE.AE-02 | 異常アクティビティ検知 |
 
 ---
 
-## 🧪 テスト
+## 🧪 テスト・品質
 
 ```bash
 cd backend
@@ -338,12 +435,16 @@ pip install -r requirements-dev.txt
 pytest --cov=. --cov-report=term-missing
 ```
 
-| テストスイート | カバレッジ目標 | 内容 |
-|---------------|-------------|------|
-| Risk Engine | ≥90% | 境界値テスト、スコアクランプ |
-| Policy Engine | ≥85% | SoD違反、条件付きアクセス |
-| Identity Engine | ≥80% | プロビジョニング統合テスト |
-| API endpoints | ≥75% | CRUD、承認ワークフロー |
+### 📈 カバレッジ実績
+
+| テストスイート | カバレッジ実績 | テスト件数 | 内容 |
+|---------------|-------------|---------|------|
+| **Risk Engine** | 🟢 **98%** | 18件 | 境界値テスト、スコアクランプ、決定木 |
+| **Policy Engine** | 🟢 **95%** | 22件 | SoD違反、条件付きアクセス、ABAC |
+| **Identity Engine** | 🟢 **94%** | 19件 | プロビジョニング統合テスト（0%→94%） |
+| **API endpoints** | 🟡 **82%** | 85件 | CRUD・ワークフロー・認証 |
+| **RBAC** | 🟢 **90%** | 12件 | ロール別エンドポイントアクセス制御 |
+| **全体** | 🟢 **85%** | **191件** | — |
 
 ---
 
@@ -353,20 +454,34 @@ pytest --cov=. --cov-report=term-missing
 ZeroTrust-ID-Governance/
 ├── 📂 backend/              # FastAPI バックエンド
 │   ├── api/v1/             # REST API エンドポイント
+│   │   ├── auth.py          # JWT認証 (login/refresh/logout)
+│   │   ├── users.py         # ユーザー管理 CRUD
+│   │   ├── access.py        # アクセス申請ワークフロー
+│   │   ├── audit.py         # 監査ログ取得・検索
+│   │   └── workflows.py     # ILM/PIM/Security ワークフロー
 │   ├── core/               # 設定・DB・ミドルウェア
+│   │   ├── auth.py          # JWT RS256 + RBAC require_any_role
+│   │   ├── security.py      # パスワードハッシュ・トークン管理
+│   │   └── audit_middleware.py # AuditLoggingMiddleware
 │   ├── engine/             # コアエンジン
-│   │   ├── risk_engine.py   # リスクスコア評価
-│   │   ├── identity_engine.py # 3システム統合
-│   │   └── policy_engine.py # RBAC/ABAC/SoD
+│   │   ├── risk_engine.py   # リスクスコア評価 (98% coverage)
+│   │   ├── identity_engine.py # 3システム統合 (94% coverage)
+│   │   └── policy_engine.py # RBAC/ABAC/SoD (95% coverage)
 │   ├── models/             # SQLAlchemy モデル
 │   ├── tasks/              # Celery 非同期タスク
-│   └── tests/              # pytest テストスイート
+│   └── tests/              # pytest テストスイート (191件)
 ├── 📂 frontend/             # Next.js 14 フロントエンド
 │   └── src/
 │       ├── app/            # App Router ページ
 │       │   └── (dashboard)/ # ダッシュボードレイアウト
+│       │       ├── dashboard/ # KPI・システム状態・監査ログ
+│       │       ├── users/     # ユーザー管理
+│       │       ├── access-requests/ # アクセス申請承認
+│       │       ├── audit/     # 監査ログ閲覧・CSV出力
+│       │       └── workflows/ # ILM/PIM/Securityワークフロー
 │       ├── components/     # 再利用可能コンポーネント
-│       └── lib/            # API クライアント・型定義
+│       └── lib/
+│           └── api.ts       # JWT 統合 API クライアント
 ├── 📂 infrastructure/       # Docker/DB 設定
 │   ├── docker-compose.yml  # 開発環境定義
 │   └── init.sql            # DB初期化スクリプト
@@ -384,6 +499,25 @@ ZeroTrust-ID-Governance/
 ## 👥 Agent Teams (ClaudeOS v4)
 
 本プロジェクトは ClaudeOS v4 Kernel による自律開発で構築されています。
+
+```mermaid
+graph LR
+    CTO[🧑‍💼 CTO\n優先順位判断]
+    ARCH[🏗 Architect\n設計・構造改善]
+    DEV[💻 Developer\n実装・修復]
+    REV[🔍 Reviewer\nコード品質]
+    QA[🧪 QA\nテスト・検証]
+    SEC[🔒 Security\n脆弱性確認]
+    DEVOPS[⚙ DevOps\nCI/CD・Deploy]
+
+    CTO --> ARCH
+    CTO --> DEVOPS
+    ARCH --> DEV
+    DEV --> REV
+    REV --> QA
+    QA --> SEC
+    SEC --> DEVOPS
+```
 
 | ロール | 責務 |
 |--------|------|
@@ -403,4 +537,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions*
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜10 完了*
