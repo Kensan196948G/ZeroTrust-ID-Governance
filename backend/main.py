@@ -14,6 +14,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from api.v1 import access, audit, roles, users, workflows
+from core.audit_middleware import AuditLoggingMiddleware
 from core.config import settings
 from models import base  # noqa: F401 – テーブル登録のため必要
 
@@ -59,6 +60,10 @@ app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=settings.ALLOWED_HOSTS,
 )
+
+# 監査ログ自動記録（ISO27001 A.8.15 / NIST CSF DE.CM-01）
+# ※ TrustedHostMiddleware より内側に置くことで信頼済みホストのみ記録
+app.add_middleware(AuditLoggingMiddleware)
 
 
 # --- グローバル例外ハンドラ ---
