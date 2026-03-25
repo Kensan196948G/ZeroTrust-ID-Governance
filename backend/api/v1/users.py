@@ -14,7 +14,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.auth import CurrentUser, get_current_user, require_role
+from core.auth import CurrentUser, get_current_user, require_any_role, require_role
 from core.database import get_db
 from models.user import User
 
@@ -84,7 +84,9 @@ async def list_users(
     user_type: str | None = Query(default=None),
     account_status: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(
+        require_any_role("Developer", "Approver", "SecurityAdmin", "GlobalAdmin")
+    ),
 ) -> dict:
     """全ユーザ一覧を取得（ページネーション付き）"""
     query = select(User)

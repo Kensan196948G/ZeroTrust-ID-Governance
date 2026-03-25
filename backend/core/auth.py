@@ -76,7 +76,7 @@ async def get_current_user(
 
 
 def require_role(required_role: str):
-    """特定ロールを必須とする Dependency ファクトリ（sync 関数）
+    """特定ロールを必須とする Dependency ファクトリ
 
     Usage:
         @router.delete("/users/{id}")
@@ -89,6 +89,30 @@ def require_role(required_role: str):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"ロール '{required_role}' が必要です",
+            )
+        return current
+
+    return _check
+
+
+def require_any_role(*allowed_roles: str):
+    """複数ロールのいずれかを持つユーザを許可する Dependency ファクトリ
+
+    ゼロトラスト最小権限原則（ISO27001 A.5.15）に従い、
+    許可ロールを明示的に列挙する方式。
+
+    Usage:
+        @router.get("/users")
+        async def list_users(user=Depends(require_any_role("Developer", "Approver", "SecurityAdmin", "GlobalAdmin"))):
+            ...
+    """
+    roles_display = " / ".join(f"'{r}'" for r in allowed_roles)
+
+    async def _check(current: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+        if not any(current.has_role(role) for role in allowed_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"以下のいずれかのロールが必要です: {roles_display}",
             )
         return current
 
