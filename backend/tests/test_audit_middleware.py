@@ -203,7 +203,7 @@ class TestAuditMiddlewareBoundaryConditions:
 
         with patch("core.audit_middleware.AsyncSessionLocal", MagicMock(return_value=mock_cm)):
             # /api/ プレフィックスなし → ミドルウェアをスキップ
-            resp = client.get("/docs")
+            client.get("/docs")
 
         # /docs は FastAPI デフォルトで存在するので 200 を返す
         # 重要: 監査ログ add() は呼ばれない
@@ -211,8 +211,6 @@ class TestAuditMiddlewareBoundaryConditions:
 
     def test_invalid_uuid_in_jwt_sub_is_handled(self) -> None:
         """JWT sub が UUID でない場合 ValueError を握り潰して処理続行（lines 99-100）"""
-        import uuid as _uuid
-
         # sub が UUID 形式でないトークンを生成
         non_uuid_token = create_access_token(
             "not-a-valid-uuid",
