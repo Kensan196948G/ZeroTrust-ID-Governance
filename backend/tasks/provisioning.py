@@ -233,9 +233,12 @@ def _record_audit_log(
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     audit_log = AuditLog(
+        event_type="identity.lifecycle",
+        source_system="celery",
         action=action,
-        actor_id=uuid.UUID(actor_id),
-        resource_id=resource_id,
+        actor_user_id=uuid.UUID(actor_id),
+        target_resource=resource_id,
+        result="success",
         details=details,
         hash=AuditLog.compute_hash(log_entry, previous_hash),
     )

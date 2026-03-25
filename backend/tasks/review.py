@@ -125,9 +125,12 @@ def start_quarterly_review(self) -> dict:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         audit_log = AuditLog(
+            event_type="identity.review",
+            source_system="celery",
             action="account.review.completed",
-            actor_id=uuid.UUID("00000000-0000-0000-0000-000000000000"),  # system actor
-            resource_id="all",
+            actor_user_id=uuid.UUID("00000000-0000-0000-0000-000000000000"),  # system actor
+            target_resource="all",
+            result="success",
             details=summary,
             hash=AuditLog.compute_hash(log_entry, previous_hash),
         )
