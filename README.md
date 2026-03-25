@@ -4,12 +4,14 @@
 > 建設業600名のユーザーライフサイクルをゼロトラスト原則で完全自動管理
 
 [![CI](https://github.com/Kensan196948G/ZeroTrust-ID-Governance/actions/workflows/claudeos-ci.yml/badge.svg)](https://github.com/Kensan196948G/ZeroTrust-ID-Governance/actions)
-[![Coverage](https://img.shields.io/badge/Coverage-85%25-brightgreen.svg)](backend/)
+[![Coverage](https://img.shields.io/badge/Coverage-97%25-brightgreen.svg)](backend/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](frontend/)
-[![Tests](https://img.shields.io/badge/Tests-191%20passed-brightgreen.svg)](backend/tests/)
+[![Tests](https://img.shields.io/badge/Tests-273%20passed-brightgreen.svg)](backend/tests/)
+[![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
+[![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
 
 ---
 
@@ -42,7 +44,12 @@
 | **Phase 8** | RBAC 細粒化 | ✅ 完了 | Viewer/Developer/SecurityAdmin/GlobalAdmin 4段階 |
 | **Phase 9** | エンジンカバレッジ | ✅ 完了 | Identity Engine 0%→94%、全体カバレッジ 83%→85% |
 | **Phase 10** | フロントエンド JWT 統合 | ✅ 完了 | 全ページ・ウィジェットを JWT 認証 API に統一 |
-| **Phase 11** | README 刷新 | 🔄 進行中 | アーキテクチャ図・RBAC 表・JWT フロー追加 |
+| **Phase 11** | README 刷新 | ✅ 完了 | アーキテクチャ図・RBAC 表・JWT フロー追加 |
+| **Phase 12** | Celery タスクカバレッジ | ✅ 完了 | 非同期タスクテスト追加・全体カバレッジ 94% |
+| **Phase 13** | テストカバレッジ強化 | ✅ 完了 | entra_connector/auth/audit_middleware 100%・全体 96% |
+| **Phase 14** | セキュリティミドルウェア | ✅ 完了 | HSTS/CSP/レート制限・セキュリティヘッダー 15項目実装 |
+| **Phase 15** | E2E テスト統合 | ✅ 完了 | Playwright（フロントエンド）+ Newman（API）CI統合 |
+| **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
 
@@ -442,9 +449,14 @@ pytest --cov=. --cov-report=term-missing
 | **Risk Engine** | 🟢 **98%** | 18件 | 境界値テスト、スコアクランプ、決定木 |
 | **Policy Engine** | 🟢 **95%** | 22件 | SoD違反、条件付きアクセス、ABAC |
 | **Identity Engine** | 🟢 **94%** | 19件 | プロビジョニング統合テスト（0%→94%） |
-| **API endpoints** | 🟡 **82%** | 85件 | CRUD・ワークフロー・認証 |
+| **API endpoints** | 🟢 **98%** | 107件 | CRUD・ワークフロー・認証・セキュリティヘッダー |
 | **RBAC** | 🟢 **90%** | 12件 | ロール別エンドポイントアクセス制御 |
-| **全体** | 🟢 **85%** | **191件** | — |
+| **Celery Tasks** | 🟢 **94%** | 22件 | 非同期プロビジョニングタスク |
+| **Auth (JWT)** | 🟢 **100%** | 31件 | JWT RS256・リフレッシュ・失効・test-login |
+| **Audit Middleware** | 🟢 **100%** | 22件 | SHA256チェーン・監査ログ記録 |
+| **E2E (Newman)** | — | 全APIエンドポイント | Postman/Newman バックエンドAPI |
+| **E2E (Playwright)** | — | 認証/ナビゲーション/ページ遷移 | フロントエンド E2E |
+| **全体** | 🟢 **97%** | **273件** | CI連続成功 N=3 STABLE達成 |
 
 ---
 
@@ -491,7 +503,19 @@ ZeroTrust-ID-Governance/
 │   └── create-pr.sh        # PR 自動生成
 ├── 📂 .github/workflows/    # GitHub Actions CI/CD
 │   └── claudeos-ci.yml     # STABLE評価ゲート
-└── 📂 docs/                 # ドキュメント・要件定義
+└── 📂 docs/                 # ドキュメント体系（12フォルダ・60ファイル）
+    ├── 01_要件定義（Requirements）/          # システム・機能・非機能・セキュリティ要件
+    ├── 02_アーキテクチャ設計（Architecture）/  # バックエンド・フロントエンド・DB・インフラ設計
+    ├── 03_API仕様（API_Specification）/      # 全APIエンドポイント詳細仕様（7ファイル）
+    ├── 04_開発ガイド（Development_Guide）/    # 環境構築・コーディング規約・CI手順
+    ├── 05_セキュリティ設計（Security_Design）/ # 脅威モデル・暗号化・脆弱性管理
+    ├── 06_統合設計（Integration_Design）/    # EntraID/AD/HENGEONE 連携仕様
+    ├── 07_テスト仕様（Testing）/             # テスト戦略・E2E仕様
+    ├── 08_データモデル（Data_Model）/        # ER図・スキーマ定義
+    ├── 09_運用保守（Operations）/            # 運用手順・監視・障害対応
+    ├── 10_プロジェクト管理（Project_Management）/ # 計画・進捗・品質管理
+    ├── 11_コンプライアンス（Compliance）/    # ISO27001・NIST CSF・個人情報保護
+    └── 12_リリース管理（Release_Management）/ # リリースプロセス・バージョン戦略・ロールバック
 ```
 
 ---
@@ -537,4 +561,22 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜10 完了*
+---
+
+## 📊 プロジェクト品質サマリー
+
+| 指標 | 値 | 達成フェーズ |
+|------|-----|-----------|
+| 単体テスト | **273件 PASS** | Phase 15 |
+| テストカバレッジ | **97%** | Phase 15 |
+| E2E テスト | Playwright + Newman | Phase 15 |
+| CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 15 |
+| セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
+| レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
+| 監査ログイベント種別 | **28種類** | Phase 13 |
+| ドキュメント | **60ファイル**（12カテゴリ） | Docs |
+| コンプライアンス準拠 | ISO27001 / NIST CSF / ISO20000 | 設計完了 |
+
+---
+
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜15 完了・STABLE N=3 達成*
