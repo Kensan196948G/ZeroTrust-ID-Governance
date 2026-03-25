@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.auth import CurrentUser, get_current_user, require_role
+from core.auth import CurrentUser, require_any_role, require_role
 from core.database import get_db
 from models.audit_log import AuditLog
 
@@ -32,9 +32,11 @@ async def search_audit_logs(
     from_time: datetime | None = Query(default=None),
     to_time: datetime | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(
+        require_any_role("SecurityAdmin", "GlobalAdmin")
+    ),
 ) -> dict:
-    """監査ログをフィルタ・ページネーションで検索"""
+    """監査ログをフィルタ・ページネーションで検索（SecurityAdmin/GlobalAdmin のみ）"""
     query = select(AuditLog).order_by(AuditLog.event_time.desc())
 
     if event_type:

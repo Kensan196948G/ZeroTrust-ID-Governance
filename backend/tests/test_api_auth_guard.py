@@ -194,10 +194,10 @@ class TestAuditAuthGuard:
         assert resp.status_code == 403
 
     def test_search_audit_logs_with_auth_reaches_endpoint(self) -> None:
-        """認証済みユーザは監査ログ検索に到達できる（DB モック）"""
+        """SecurityAdmin は監査ログ検索に到達できる（DB モック）"""
         _mock_db_override()
         try:
-            resp = client.get("/api/v1/audit-logs", headers=USER_HDR)
+            resp = client.get("/api/v1/audit-logs", headers=ADMIN_HDR)
             assert resp.status_code == 200
             assert resp.json()["success"] is True
         finally:

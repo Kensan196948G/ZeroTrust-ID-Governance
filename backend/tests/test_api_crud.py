@@ -382,11 +382,11 @@ class TestAuditLogsCRUD:
     """audit-logs エンドポイントのフィルタリングと CSV エクスポートを検証"""
 
     def test_search_with_event_type_filter(self) -> None:
-        """event_type フィルタで監査ログ検索 → 200"""
+        """event_type フィルタで監査ログ検索 → 200（SecurityAdmin 必須）"""
         mock_logs = [_make_audit_log_mock(event_type="user_login")]
         _mock_db(scalars_all=mock_logs)
         try:
-            resp = client.get("/api/v1/audit-logs?event_type=user_login", headers=USER_HDR)
+            resp = client.get("/api/v1/audit-logs?event_type=user_login", headers=ADMIN_HDR)
             assert resp.status_code == 200
             body = resp.json()
             assert body["success"] is True
@@ -396,46 +396,46 @@ class TestAuditLogsCRUD:
             _clear_db()
 
     def test_search_with_source_system_filter(self) -> None:
-        """source_system フィルタ → 200"""
+        """source_system フィルタ → 200（SecurityAdmin 必須）"""
         mock_logs = [_make_audit_log_mock(source_system="AD")]
         _mock_db(scalars_all=mock_logs)
         try:
-            resp = client.get("/api/v1/audit-logs?source_system=AD", headers=USER_HDR)
+            resp = client.get("/api/v1/audit-logs?source_system=AD", headers=ADMIN_HDR)
             assert resp.status_code == 200
         finally:
             _clear_db()
 
     def test_search_with_result_filter(self) -> None:
-        """result フィルタ（失敗ログ）→ 200"""
+        """result フィルタ（失敗ログ）→ 200（SecurityAdmin 必須）"""
         _mock_db(scalars_all=[])
         try:
-            resp = client.get("/api/v1/audit-logs?result=failure", headers=USER_HDR)
+            resp = client.get("/api/v1/audit-logs?result=failure", headers=ADMIN_HDR)
             assert resp.status_code == 200
             assert resp.json()["data"] == []
         finally:
             _clear_db()
 
     def test_search_with_actor_user_id_filter(self) -> None:
-        """actor_user_id フィルタ → 200"""
+        """actor_user_id フィルタ → 200（SecurityAdmin 必須）"""
         actor_id = uuid.uuid4()
         mock_logs = [_make_audit_log_mock(actor_user_id=actor_id)]
         _mock_db(scalars_all=mock_logs)
         try:
             resp = client.get(
                 f"/api/v1/audit-logs?actor_user_id={actor_id}",
-                headers=USER_HDR,
+                headers=ADMIN_HDR,
             )
             assert resp.status_code == 200
         finally:
             _clear_db()
 
     def test_search_with_time_range_filter(self) -> None:
-        """from_time / to_time フィルタ → 200"""
+        """from_time / to_time フィルタ → 200（SecurityAdmin 必須）"""
         _mock_db(scalars_all=[])
         try:
             resp = client.get(
                 "/api/v1/audit-logs?from_time=2024-01-01T00:00:00&to_time=2024-12-31T23:59:59",
-                headers=USER_HDR,
+                headers=ADMIN_HDR,
             )
             assert resp.status_code == 200
         finally:
