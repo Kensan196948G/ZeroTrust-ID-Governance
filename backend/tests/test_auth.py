@@ -7,13 +7,16 @@ security.py と auth.py の動作を検証
 
 from __future__ import annotations
 
+import uuid
 from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from core.auth import CurrentUser, get_current_user
+from core.database import get_db
 from core.security import (
     create_access_token,
     create_refresh_token,
@@ -198,3 +201,77 @@ class TestPublicEndpoints:
         resp = client.get("/health")
         assert resp.status_code == 200
         assert resp.json()["status"] == "ok"
+
+
+# ============================================================
+# テスト環境専用ログインエンドポイント
+# ============================================================
+class TestLoginEndpoint:
+    """POST /api/v1/auth/login テスト環境専用ログインの動作検証"""
+
+    def setup_method(self) -> None:
+        """DB 依存性をモックに差し替える（ローカル PostgreSQL 不要）"""
+        mock_user_id = uuid.uuid4()
+
+        async def _db():
+            mock = AsyncMock()
+            result = MagicMock()
+            # ユーザーが存在しない → 新規作成フローを通す
+            result.scalar_one_or_none.return_value = None
+            mock.execute.return_value = result
+            mock.commit = AsyncMock()
+            mock.add = MagicMock()
+
+            # refresh は user.id をそのまま維持（コンストラクタで設定済み）
+            async def _refresh(obj):
+                if not hasattr(obj, '_id_set'):
+                    obj.id = mock_user_id
+
+            mock.refresh.side_effect = _refresh
+            yield mock
+
+        app.dependency_overrides[get_db] = _db
+
+    def teardown_method(self) -> None:
+        """DB モックをクリア"""
+        app.dependency_overrides.pop(get_db, None)
+
+    def test_login_success_returns_tokens(self) -> None:
+        """正常ログインはアクセストークンとリフレッシュトークンを返す"""
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "AdminPass123!"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "bearer"
+
+    def test_login_wrong_password_returns_401(self) -> None:
+        """誤ったパスワードは 401 を返す"""
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "WRONG_PASSWORD"},
+        )
+        assert resp.status_code == 401
+
+    def test_login_wrong_username_returns_401(self) -> None:
+        """存在しないユーザー名は 401 を返す"""
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "notexist", "password": "AdminPass123!"},
+        )
+        assert resp.status_code == 401
+
+    def test_login_access_token_is_valid_jwt(self) -> None:
+        """返却されたアクセストークンが有効な JWT であることを確認"""
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "AdminPass123!"},
+        )
+        assert resp.status_code == 200
+        token = resp.json()["access_token"]
+        payload = decode_token(token)
+        assert "sub" in payload
+        assert payload.get("type") == "access"
