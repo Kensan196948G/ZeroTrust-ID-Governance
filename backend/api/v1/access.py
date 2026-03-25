@@ -1,7 +1,7 @@
 """アクセス申請 API（GOV-003 セルフサービスポータル申請）"""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -98,7 +98,7 @@ async def update_request(
     if action == "approve":
         req.status = "approved"
         req.approver_id = approver_id
-        req.approved_at = datetime.utcnow()
+        req.approved_at = datetime.now(timezone.utc)
     elif action == "reject":
         req.status = "rejected"
         req.approver_id = approver_id

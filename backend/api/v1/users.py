@@ -1,13 +1,16 @@
 """
 ユーザ管理 API
 設計仕様書 3.1 ユーザ管理 API エンドポイントに準拠
+
+準拠: ISO27001 A.5.15 アクセス制御 / NIST CSF PR.AA-05 アクセス権限管理
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,20 +23,34 @@ router = APIRouter()
 
 # --- Pydantic スキーマ ---
 
+class UserType(str, Enum):
+    """ユーザ種別 — ISO27001 A.5.15 アクセス制御ポリシー"""
+    EMPLOYEE = "employee"
+    CONTRACTOR = "contractor"
+    PARTNER = "partner"
+    ADMIN = "admin"
+
+
 class UserCreate(BaseModel):
-    employee_id: str
-    username: str
-    display_name: str
+    """ユーザ作成リクエスト — 入力バリデーション強化（NIST CSF PR.AA-05）"""
+    employee_id: str = Field(min_length=1, max_length=20)
+    username: str = Field(
+        min_length=3,
+        max_length=100,
+        pattern=r"^[a-zA-Z0-9._-]+$",
+        description="英数字・ドット・ハイフン・アンダーバーのみ許可",
+    )
+    display_name: str = Field(min_length=1, max_length=200)
     email: EmailStr
     department_id: uuid.UUID | None = None
-    job_title: str | None = None
-    user_type: str = "employee"
-    hire_date: str
+    job_title: str | None = Field(default=None, max_length=200)
+    user_type: UserType = UserType.EMPLOYEE
+    hire_date: date  # ISO 8601 形式を自動検証（YYYY-MM-DD）
 
 
 class UserUpdate(BaseModel):
-    display_name: str | None = None
-    job_title: str | None = None
+    display_name: str | None = Field(default=None, min_length=1, max_length=200)
+    job_title: str | None = Field(default=None, max_length=200)
     department_id: uuid.UUID | None = None
     account_status: str | None = None
 
@@ -48,7 +65,7 @@ class UserResponse(BaseModel):
     account_status: str
     mfa_enabled: bool
     risk_score: int
-    hire_date: str
+    hire_date: date  # DB の date 型と整合（JSON シリアライズ時に ISO 文字列へ変換）
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -97,8 +114,6 @@ async def create_user(
     current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
 ) -> dict:
     """新規ユーザを作成し、非同期プロビジョニングタスクをキュー投入"""
-    from datetime import date
-
     user = User(
         employee_id=payload.employee_id,
         username=payload.username,
@@ -106,8 +121,8 @@ async def create_user(
         email=payload.email,
         department_id=payload.department_id,
         job_title=payload.job_title,
-        user_type=payload.user_type,
-        hire_date=date.fromisoformat(payload.hire_date),
+        user_type=payload.user_type.value,
+        hire_date=payload.hire_date,  # Pydantic が date 型で受け取るので変換不要
     )
     db.add(user)
     await db.flush()
