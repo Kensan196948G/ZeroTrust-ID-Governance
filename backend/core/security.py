@@ -16,7 +16,13 @@ from passlib.context import CryptContext
 from core.config import settings
 
 # --- パスワードハッシュコンテキスト（bcrypt）---
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# OWASP Password Storage Cheat Sheet 2024: rounds >= 12 推奨
+# ISO27001 A.8.1: 認証情報の強度基準
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=13,
+)
 
 
 def hash_password(plain: str) -> str:

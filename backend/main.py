@@ -64,11 +64,18 @@ app.add_middleware(
 # --- グローバル例外ハンドラ ---
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """未処理例外のキャッチオール
+
+    ISO27001 A.8.16: セキュリティ監視 — サーバサイドログのみに詳細を記録し
+    クライアントへは汎用メッセージを返す（情報漏洩防止）
+    """
+    is_production = settings.APP_ENV == "production"
     logger.error(
         "Unhandled exception",
         path=request.url.path,
         method=request.method,
         error=str(exc),
+        exc_info=not is_production,  # 開発環境のみスタックトレースを出力
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
