@@ -10,7 +10,7 @@ set -euo pipefail
 ISSUE_NUMBER="${1:-}"
 STATUS="${2:-}"
 REPO="Kensan196948G/ZeroTrust-ID-Governance"
-PROJECT_NUMBER=10
+PROJECT_NUMBER=12
 
 if [[ -z "$ISSUE_NUMBER" || -z "$STATUS" ]]; then
   echo "Usage: $0 <issue_number> <status>"
@@ -65,7 +65,7 @@ gh api graphql -f query='
       projectV2Item { id }
     }
   }' \
-  -f project="PVT_kwHOClgkIc4BStN-" \
+  -f project="PVT_kwHOClgkIc4BSuPD" \
   -f item="$ITEM_ID" \
   -f field="$FIELD_ID" \
   -f value="$OPTION_ID"
