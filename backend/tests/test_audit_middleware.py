@@ -140,3 +140,111 @@ class TestAuditMiddlewareMetadataExtraction:
 
         assert len(captured_logs) == 1
         assert captured_logs[0].result == "failure"
+
+
+class TestAuditMiddlewareBoundaryConditions:
+    """ミドルウェアの境界条件・例外パスを検証"""
+
+    def test_jwt_error_in_extract_user_is_swallowed(self) -> None:
+        """無効 JWT: _extract_user_from_request が JWTError を握り潰して処理続行（lines 57-59）"""
+        # 不正な Bearer トークン → decode_token が JWTError を投げる
+        # ミドルウェアはエラーを無視して user_id=None のままリクエストを継続する
+        resp = client.get(
+            "/api/v1/users",
+            headers={"Authorization": "Bearer invalid.jwt.token"},
+        )
+        # 認証は 401 を返すが、ミドルウェアがクラッシュしないことを確認
+        assert resp.status_code == 401
+
+    def test_x_forwarded_for_header_used_as_client_ip(self) -> None:
+        """X-Forwarded-For ヘッダーが actor_ip として記録される（line 66）"""
+        _mock_db_override()
+        captured_logs: list = []
+
+        mock_session = AsyncMock()
+        mock_session.add = lambda obj: captured_logs.append(obj)
+        mock_session.commit = AsyncMock()
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with patch("core.audit_middleware.AsyncSessionLocal", MagicMock(return_value=mock_cm)):
+                with patch("core.token_store._get_redis") as mock_redis:
+                    r = MagicMock()
+                    r.exists = MagicMock(return_value=0)
+                    mock_redis.return_value = r
+                    resp = client.get(
+                        "/api/v1/users",
+                        headers={
+                            **_auth_header(),
+                            "X-Forwarded-For": "203.0.113.42, 10.0.0.1",
+                        },
+                    )
+                    assert resp.status_code == 200
+
+            assert len(captured_logs) == 1
+            assert captured_logs[0].actor_ip == "203.0.113.42"
+        finally:
+            _clear_db_override()
+
+    def test_non_api_path_skips_audit_log(self) -> None:
+        """/api/ 以外のパスは監査ログを記録せずリクエストを通す（line 91）"""
+        captured_logs: list = []
+
+        mock_session = AsyncMock()
+        mock_session.add = lambda obj: captured_logs.append(obj)
+        mock_session.commit = AsyncMock()
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("core.audit_middleware.AsyncSessionLocal", MagicMock(return_value=mock_cm)):
+            # /api/ プレフィックスなし → ミドルウェアをスキップ
+            resp = client.get("/docs")
+
+        # /docs は FastAPI デフォルトで存在するので 200 を返す
+        # 重要: 監査ログ add() は呼ばれない
+        assert len(captured_logs) == 0
+
+    def test_invalid_uuid_in_jwt_sub_is_handled(self) -> None:
+        """JWT sub が UUID でない場合 ValueError を握り潰して処理続行（lines 99-100）"""
+        import uuid as _uuid
+
+        # sub が UUID 形式でないトークンを生成
+        non_uuid_token = create_access_token(
+            "not-a-valid-uuid",
+            extra_claims={"roles": ["Developer"]},
+        )
+
+        _mock_db_override()
+        captured_logs: list = []
+
+        mock_session = AsyncMock()
+        mock_session.add = lambda obj: captured_logs.append(obj)
+        mock_session.commit = AsyncMock()
+
+        mock_cm = MagicMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+        try:
+            with patch("core.audit_middleware.AsyncSessionLocal", MagicMock(return_value=mock_cm)):
+                with patch("core.token_store._get_redis") as mock_redis:
+                    r = MagicMock()
+                    r.exists = MagicMock(return_value=0)
+                    mock_redis.return_value = r
+                    resp = client.get(
+                        "/api/v1/users",
+                        headers={"Authorization": f"Bearer {non_uuid_token}"},
+                    )
+                    # ミドルウェアがクラッシュせず応答が返ること
+                    assert resp.status_code in (200, 401)
+
+            # actor_user_id は None になる（UUID 変換失敗）
+            assert len(captured_logs) == 1
+            assert captured_logs[0].actor_user_id is None
+        finally:
+            _clear_db_override()

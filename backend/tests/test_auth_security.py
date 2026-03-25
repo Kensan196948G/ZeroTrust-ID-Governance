@@ -239,3 +239,64 @@ class TestRedisFailsafe:
                 assert resp.status_code == 200
         finally:
             _clear_db()
+
+
+# ────────────────────────────────────────────────
+# api/v1/auth.py 未カバー行の追加テスト
+# ────────────────────────────────────────────────
+
+class TestAuthApiCoverage:
+    """api/v1/auth.py の未カバー行を対象とした追加テスト"""
+
+    def test_logout_jwt_error_handled_gracefully(self) -> None:
+        """logout: logout 内の decode_token が JWTError → 握り潰して 204 を返す（lines 54-55）
+
+        get_current_user は core.auth.decode_token を使うためパッチ対象外。
+        api.v1.auth.decode_token だけを上書きすることで logout 内部でのみ JWTError が発生する。
+        """
+        from jose import JWTError as _JWTError
+
+        with patch("core.token_store._get_redis") as mock_redis:
+            r = MagicMock()
+            r.exists = MagicMock(return_value=0)   # not revoked（get_current_user 用）
+            r.setex = MagicMock()
+            mock_redis.return_value = r
+
+            with patch("api.v1.auth.decode_token", side_effect=_JWTError("decode failed")):
+                resp = client.post(
+                    "/api/v1/auth/logout",
+                    headers=_auth_header(),
+                )
+                assert resp.status_code == 204
+
+    def test_refresh_with_empty_subject_returns_401(self) -> None:
+        """refresh: subject が空文字の refresh token → 401（line 98）"""
+        import uuid as _uuid
+        from datetime import datetime, timezone
+        from jose import jwt as _jwt
+        from core.security import _signing_key, _effective_algorithm
+
+        now = datetime.now(timezone.utc)
+        payload_no_sub = {
+            "sub": "",   # 空文字 → `if not subject:` が True になる
+            "iat": now,
+            "exp": now + timedelta(days=7),
+            "jti": str(_uuid.uuid4()),
+            "type": "refresh",
+        }
+        token_empty_sub = _jwt.encode(
+            payload_no_sub,
+            _signing_key(),
+            algorithm=_effective_algorithm(),
+        )
+
+        with patch("core.token_store._get_redis") as mock_redis:
+            r = MagicMock()
+            r.exists = MagicMock(return_value=0)   # not revoked
+            mock_redis.return_value = r
+
+            resp = client.post(
+                "/api/v1/auth/refresh",
+                json={"refresh_token": token_empty_sub},
+            )
+            assert resp.status_code == 401

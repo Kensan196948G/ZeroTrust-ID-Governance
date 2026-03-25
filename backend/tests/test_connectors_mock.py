@@ -246,6 +246,143 @@ class TestEntraIDConnector:
             result = await connector.user_exists("notexist@mirai-kensetsu.co.jp")
         assert result is False
 
+    # ── 追加: __init__ / _get_token / _get_headers / assign_license / enable_pim_role / account_active の未カバー行 ──
+
+    def test_init_sets_access_token_to_none(self):
+        """__init__ が _access_token を None で初期化する（line 28）"""
+        from connectors.entra_connector import EntraIDConnector
+        connector = EntraIDConnector()
+        assert connector._access_token is None
+
+    @pytest.mark.asyncio
+    async def test_get_token_success(self):
+        """_get_token がクライアントクレデンシャルフローでアクセストークンを取得する（lines 32-43）"""
+        from connectors.entra_connector import EntraIDConnector
+        connector = EntraIDConnector()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"access_token": "fresh-token-abc"}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_response)
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            token = await connector._get_token()
+        assert token == "fresh-token-abc"
+
+    @pytest.mark.asyncio
+    async def test_get_headers_calls_get_token_when_token_is_none(self):
+        """_access_token が None のとき _get_headers が _get_token を呼び出す（line 47）"""
+        from connectors.entra_connector import EntraIDConnector
+        connector = EntraIDConnector()
+        assert connector._access_token is None
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"access_token": "fetched-token-xyz"}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_response)
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            headers = await connector._get_headers()
+        assert headers["Authorization"] == "Bearer fetched-token-xyz"
+        assert headers["Content-Type"] == "application/json"
+
+    @pytest.mark.asyncio
+    async def test_assign_license_success(self):
+        """assign_license が M365 ライセンスを割り当て JSON を返す（lines 81-92）"""
+        connector = self._make_connector()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"id": "entra-user-id-001", "assignedLicenses": []}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_response)
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            result = await connector.assign_license("entra-user-id-001")
+        assert "id" in result
+
+    @pytest.mark.asyncio
+    async def test_enable_pim_role_success(self):
+        """enable_pim_role が JIT ロール有効化リクエストを送信して JSON を返す（lines 108-131）"""
+        connector = self._make_connector()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"id": "pim-req-001", "status": "Provisioned"}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_response)
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            result = await connector.enable_pim_role(
+                "entra-user-id-001", "role-def-001", duration_hours=4
+            )
+        assert result["id"] == "pim-req-001"
+
+    @pytest.mark.asyncio
+    async def test_account_active_returns_true(self):
+        """account_active がアクティブユーザで True を返す（lines 147-155）"""
+        connector = self._make_connector()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"accountEnabled": True}
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            result = await connector.account_active("taro@mirai-kensetsu.co.jp")
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_account_active_returns_false(self):
+        """account_active が無効ユーザで False を返す（lines 147-155）"""
+        connector = self._make_connector()
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"accountEnabled": False}
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            result = await connector.account_active("disabled@mirai-kensetsu.co.jp")
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_account_active_exception_returns_false(self):
+        """account_active が例外時に False を返す（耐障害設計: lines 154-155）"""
+        connector = self._make_connector()
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(side_effect=Exception("network error"))
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            result = await connector.account_active("taro@mirai-kensetsu.co.jp")
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_user_exists_exception_returns_false(self):
+        """user_exists が例外時に False を返す（耐障害設計: lines 142-143）"""
+        connector = self._make_connector()
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(side_effect=Exception("network error"))
+
+        with patch("connectors.entra_connector.httpx.AsyncClient", return_value=mock_client):
+            result = await connector.user_exists("taro@mirai-kensetsu.co.jp")
+        assert result is False
+
 
 # ============================================================
 # HengeOneConnector テスト（httpx をモック）
