@@ -1,0 +1,243 @@
+{
+  "info": {
+    "_postman_id": "ztid-api-e2e-v1",
+    "name": "ZeroTrust-ID-Governance API E2E",
+    "description": "Phase 15: Newman による API E2E シナリオテスト\n\n準拠: ISO27001 A.8.29 開発・テストのセキュリティ\nNIST CSF PR.AA-01 アクセス認証",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - ヘルスチェック",
+      "item": [
+        {
+          "name": "GET /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is ok', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "GET /api/v1/health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Security headers present', () => {",
+                  "  pm.expect(pm.response.headers.get('x-frame-options')).to.eql('DENY');",
+                  "  pm.expect(pm.response.headers.get('x-content-type-options')).to.eql('nosniff');",
+                  "  pm.expect(pm.response.headers.get('cache-control')).to.eql('no-store');",
+                  "});",
+                  "pm.test('RateLimit header present', () => {",
+                  "  pm.expect(pm.response.headers.get('x-ratelimit-limit')).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - 認証フロー",
+      "item": [
+        {
+          "name": "POST /auth/login - 成功",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns access_token', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('access_token');",
+                  "  pm.expect(body).to.have.property('refresh_token');",
+                  "  pm.expect(body.token_type).to.eql('bearer');",
+                  "  pm.collectionVariables.set('access_token', body.access_token);",
+                  "  pm.collectionVariables.set('refresh_token', body.refresh_token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"admin\", \"password\": \"AdminPass123!\"}"
+            },
+            "url": "{{base_url}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "POST /auth/login - 無効なパスワード → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 or 422', () => {",
+                  "  pm.expect([401, 422]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"admin\", \"password\": \"WRONG_PASSWORD\"}"
+            },
+            "url": "{{base_url}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "GET /api/v1/users - 認証なし → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unauthenticated request rejected', () => {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/users"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - セキュリティヘッダー検証",
+      "item": [
+        {
+          "name": "全ルートで X-Frame-Options: DENY を確認",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('X-Frame-Options is DENY', () => {",
+                  "  pm.expect(pm.response.headers.get('x-frame-options')).to.eql('DENY');",
+                  "});",
+                  "pm.test('X-Content-Type-Options is nosniff', () => {",
+                  "  pm.expect(pm.response.headers.get('x-content-type-options')).to.eql('nosniff');",
+                  "});",
+                  "pm.test('Strict-Transport-Security is present', () => {",
+                  "  const hsts = pm.response.headers.get('strict-transport-security');",
+                  "  pm.expect(hsts).to.include('max-age=31536000');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "API パスで Cache-Control: no-store を確認",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cache-Control is no-store on API paths', () => {",
+                  "  pm.expect(pm.response.headers.get('cache-control')).to.eql('no-store');",
+                  "});",
+                  "pm.test('Pragma is no-cache on API paths', () => {",
+                  "  pm.expect(pm.response.headers.get('pragma')).to.eql('no-cache');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - レート制限検証",
+      "item": [
+        {
+          "name": "X-RateLimit-Limit ヘッダーの存在確認",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('X-RateLimit-Limit header is present', () => {",
+                  "  const rateLimitHeader = pm.response.headers.get('x-ratelimit-limit');",
+                  "  pm.expect(rateLimitHeader).to.not.be.null;",
+                  "  pm.expect(parseInt(rateLimitHeader)).to.be.greaterThan(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/health"
+          }
+        }
+      ]
+    }
+  ]
+}
