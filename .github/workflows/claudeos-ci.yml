@@ -8,7 +8,8 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   # ===================================
@@ -76,7 +77,7 @@ jobs:
           pytest tests/ --cov-report=xml
 
       - name: 📊 Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: backend/coverage.xml
           flags: backend
@@ -115,6 +116,43 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
         run: npm run build
+
+  # ===================================
+  # フロントエンド単体テスト（Vitest）
+  # ===================================
+  frontend-unit:
+    name: 🧪 Frontend Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: 🧪 Unit test (Vitest)
+        working-directory: frontend
+        run: npm test
+
+      - name: 📊 Coverage report
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: 📤 Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: frontend/coverage/coverage-final.json
+          flags: frontend-unit
+        continue-on-error: true
 
   # ===================================
   # セキュリティスキャン
@@ -301,7 +339,7 @@ jobs:
   # ===================================
   ci-gate:
     name: "\u2705 CI Gate (STABLE\u5224\u5b9a)"
-    needs: [backend-ci, frontend-ci, security-scan, api-e2e, frontend-e2e]
+    needs: [backend-ci, frontend-ci, frontend-unit, security-scan, api-e2e, frontend-e2e]
     runs-on: ubuntu-latest
     if: always()
 
@@ -310,18 +348,21 @@ jobs:
         env:
           BACKEND_RESULT: ${{ needs.backend-ci.result }}
           FRONTEND_RESULT: ${{ needs.frontend-ci.result }}
+          FRONTEND_UNIT_RESULT: ${{ needs.frontend-unit.result }}
           SECURITY_RESULT: ${{ needs.security-scan.result }}
           API_E2E_RESULT: ${{ needs.api-e2e.result }}
           FRONTEND_E2E_RESULT: ${{ needs.frontend-e2e.result }}
         run: |
-          echo "Backend CI:   $BACKEND_RESULT"
-          echo "Frontend CI:  $FRONTEND_RESULT"
-          echo "Security:     $SECURITY_RESULT"
-          echo "API E2E:      $API_E2E_RESULT"
-          echo "Frontend E2E: $FRONTEND_E2E_RESULT"
+          echo "Backend CI:      $BACKEND_RESULT"
+          echo "Frontend CI:     $FRONTEND_RESULT"
+          echo "Frontend Unit:   $FRONTEND_UNIT_RESULT"
+          echo "Security:        $SECURITY_RESULT"
+          echo "API E2E:         $API_E2E_RESULT"
+          echo "Frontend E2E:    $FRONTEND_E2E_RESULT"
 
           if [[ "$BACKEND_RESULT" == "success" && \
                 "$FRONTEND_RESULT" == "success" && \
+                "$FRONTEND_UNIT_RESULT" == "success" && \
                 "$API_E2E_RESULT" == "success" && \
                 "$FRONTEND_E2E_RESULT" == "success" ]]; then
             echo "CI PASSED - STABLE (E2E all passed)"
