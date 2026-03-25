@@ -50,8 +50,8 @@ class TestSettings:
         assert settings.APP_VERSION == "1.0.0"
 
     def test_jwt_algorithm(self) -> None:
-        """JWT アルゴリズムが HS256"""
-        assert settings.JWT_ALGORITHM == "HS256"
+        """JWT アルゴリズムが RS256（Phase 7 以降のデフォルト）"""
+        assert settings.JWT_ALGORITHM == "RS256"
 
     def test_jwt_access_token_expire_positive(self) -> None:
         """JWT アクセストークン有効期限は正の整数"""
