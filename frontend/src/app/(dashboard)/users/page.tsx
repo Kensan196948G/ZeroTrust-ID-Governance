@@ -1,15 +1,15 @@
 'use client';
 
 import useSWR from 'swr';
-import { Shield, UserCheck, UserX, Search } from 'lucide-react';
+import { Shield, UserCheck, Search } from 'lucide-react';
 import { useState } from 'react';
 import { RiskBadge } from '@/components/RiskBadge';
-import type { User } from '@/lib/api';
+import { usersApi, type User } from '@/lib/api';
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((j) => j.data);
+const fetcher = (_key: string) => usersApi.list();
 
 export default function UsersPage() {
-  const { data: users, isLoading } = useSWR<User[]>('/api/v1/users', fetcher, {
+  const { data: users, isLoading } = useSWR<User[]>('users', fetcher, {
     refreshInterval: 30_000,
   });
   const [search, setSearch] = useState('');
@@ -105,14 +105,14 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm text-gray-300">{user.department ?? '—'}</p>
-                      <p className="text-xs text-gray-500">{user.job_title ?? '—'}</p>
+                      <p className="text-sm text-gray-300">{user.user_type}</p>
+                      <p className="text-xs text-gray-500">{user.hire_date}</p>
                     </td>
                     <td className="px-6 py-4">
-                      {user.is_active ? (
+                      {user.account_status === 'active' ? (
                         <span className="badge-active">有効</span>
                       ) : (
-                        <span className="badge-inactive">無効</span>
+                        <span className="badge-inactive">{user.account_status === 'disabled' ? '無効' : '停止'}</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -132,15 +132,15 @@ export default function UsersPage() {
                     <td className="px-6 py-4">
                       <div className="flex gap-1">
                         <span
-                          className={`w-2 h-2 rounded-full ${user.entra_object_id ? 'bg-blue-400' : 'bg-gray-700'}`}
+                          className="w-2 h-2 rounded-full bg-blue-400"
                           title="Entra ID"
                         />
                         <span
-                          className={`w-2 h-2 rounded-full ${user.ad_dn ? 'bg-purple-400' : 'bg-gray-700'}`}
+                          className="w-2 h-2 rounded-full bg-purple-400"
                           title="Active Directory"
                         />
                         <span
-                          className={`w-2 h-2 rounded-full ${user.hengeone_id ? 'bg-orange-400' : 'bg-gray-700'}`}
+                          className="w-2 h-2 rounded-full bg-orange-400"
                           title="HENGEONE"
                         />
                       </div>
