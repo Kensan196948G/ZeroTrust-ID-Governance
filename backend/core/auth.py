@@ -12,6 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 
 from core.security import decode_token
+from core.token_store import is_token_revoked
 
 # Bearer スキーム（auto_error=False で 401 を自前で返す）
 _bearer_scheme = HTTPBearer(auto_error=False)
@@ -58,6 +59,11 @@ async def get_current_user(
     # type クレームで refresh トークンの誤用を防ぐ
     if payload.get("type") != "access":
         raise _unauthorized("アクセストークンが必要です")
+
+    # Redis ブラックリストチェック（ログアウト・強制失効済みトークンを拒否）
+    jti: str | None = payload.get("jti")
+    if jti and is_token_revoked(jti):
+        raise _unauthorized("トークンは失効済みです")
 
     user_id: str | None = payload.get("sub")
     if not user_id:

@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from api.v1 import access, audit, roles, users, workflows
+from api.v1 import access, audit, auth, roles, users, workflows
 from core.audit_middleware import AuditLoggingMiddleware
 from core.config import settings
 from models import base  # noqa: F401 – テーブル登録のため必要
@@ -93,6 +93,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 
 # --- ルーター登録 ---
+app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1", tags=["Users"])
 app.include_router(roles.router, prefix="/api/v1", tags=["Roles"])
 app.include_router(access.router, prefix="/api/v1", tags=["Access Requests"])

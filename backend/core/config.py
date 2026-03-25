@@ -30,10 +30,16 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # --- JWT ---
-    JWT_SECRET_KEY: str = "jwt-secret-key-change-in-production"
-    JWT_ALGORITHM: str = "HS256"
+    # RS256（非対称鍵）推奨。本番: JWT_PRIVATE_KEY / JWT_PUBLIC_KEY に PEM を設定
+    # 鍵未設定時は HS256 + JWT_SECRET_KEY にフォールバック（開発・テスト用）
+    # 準拠: ISO27001 A.8.2 情報アクセス制限 / NIST CSF PR.AA-02
+    JWT_SECRET_KEY: str = "jwt-secret-key-change-in-production"  # HS256 フォールバック用
+    JWT_ALGORITHM: str = "RS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # RS256 鍵（PEM 形式。改行は \n エスケープで env に設定）
+    JWT_PRIVATE_KEY: str = ""
+    JWT_PUBLIC_KEY: str = ""
 
     # --- Azure / Entra ID ---
     AZURE_TENANT_ID: str = ""
