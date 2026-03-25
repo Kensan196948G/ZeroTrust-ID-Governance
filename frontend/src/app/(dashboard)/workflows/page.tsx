@@ -3,21 +3,30 @@
 import useSWR from 'swr';
 import { useState } from 'react';
 import { Play, RefreshCw, AlertTriangle, CheckCircle2, Clock, Zap } from 'lucide-react';
+import { workflowsApi } from '@/lib/api';
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const healthFetcher = (url: string) => fetch(url).then((r) => r.json());
 
 // ワークフロー定義
-const WORKFLOWS = [
+type WorkflowTrigger = () => Promise<{ task_id: string; status: string }>;
+
+const WORKFLOWS: {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  trigger: WorkflowTrigger;
+  schedule: string;
+}[] = [
   {
     id: 'quarterly-review',
     name: '四半期アクセス棚卸',
     description: 'ILM-005: 全ユーザーの3システム整合性チェック・SoD違反検出・期限切れロール削除',
     icon: '🔍',
     category: 'ILM',
-    endpoint: '/api/v1/workflows/quarterly-review',
+    trigger: workflowsApi.quarterlyReview,
     schedule: '毎四半期（90日ごと）',
-    lastRun: null as string | null,
-    status: 'idle' as 'idle' | 'running' | 'success' | 'error',
   },
   {
     id: 'consistency-check',
@@ -25,10 +34,8 @@ const WORKFLOWS = [
     description: '3システム間のユーザー情報乖離を検出し、不整合レポートを生成',
     icon: '⚖️',
     category: 'ILM',
-    endpoint: '/api/v1/workflows/consistency-check',
+    trigger: workflowsApi.consistencyCheck,
     schedule: '毎日 00:00',
-    lastRun: null as string | null,
-    status: 'idle' as 'idle' | 'running' | 'success' | 'error',
   },
   {
     id: 'risk-scan',
@@ -36,10 +43,8 @@ const WORKFLOWS = [
     description: '全ユーザーのリスクスコアを再計算し、高リスクユーザーに警告',
     icon: '🎯',
     category: 'Security',
-    endpoint: '/api/v1/workflows/risk-scan',
+    trigger: workflowsApi.riskScan,
     schedule: '毎時',
-    lastRun: null as string | null,
-    status: 'idle' as 'idle' | 'running' | 'success' | 'error',
   },
   {
     id: 'pim-expiry',
@@ -47,10 +52,8 @@ const WORKFLOWS = [
     description: '期限切れ特権アクセス（時限付きロール）を自動的に剥奪',
     icon: '⏱️',
     category: 'PIM',
-    endpoint: '/api/v1/workflows/pim-expiry',
+    trigger: workflowsApi.pimExpiry,
     schedule: '30分ごと',
-    lastRun: null as string | null,
-    status: 'idle' as 'idle' | 'running' | 'success' | 'error',
   },
   {
     id: 'mfa-enforcement',
@@ -58,10 +61,8 @@ const WORKFLOWS = [
     description: 'MFA未設定かつリスクスコア30以上のアカウントを自動停止',
     icon: '🔐',
     category: 'Security',
-    endpoint: '/api/v1/workflows/mfa-enforcement',
+    trigger: workflowsApi.mfaEnforcement,
     schedule: '毎日 09:00',
-    lastRun: null as string | null,
-    status: 'idle' as 'idle' | 'running' | 'success' | 'error',
   },
 ];
 
@@ -75,7 +76,7 @@ export default function WorkflowsPage() {
   const [runningWorkflows, setRunningWorkflows] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<Record<string, { success: boolean; message: string }>>({});
 
-  const { data: health } = useSWR('/api/v1/health', fetcher, { refreshInterval: 30_000 });
+  const { data: health } = useSWR('/api/v1/health', healthFetcher, { refreshInterval: 30_000 });
   const isSystemOnline = health?.status === 'ok';
 
   async function triggerWorkflow(wf: typeof WORKFLOWS[number]) {
@@ -83,19 +84,21 @@ export default function WorkflowsPage() {
 
     setRunningWorkflows((prev) => new Set([...prev, wf.id]));
     try {
-      const res = await fetch(wf.endpoint, { method: 'POST' });
-      const data = await res.json();
+      const data = await wf.trigger();
       setResults((prev) => ({
         ...prev,
         [wf.id]: {
-          success: res.ok,
-          message: data.message ?? (res.ok ? '完了しました' : 'エラーが発生しました'),
+          success: true,
+          message: `タスクID: ${data.task_id} — ${data.status}`,
         },
       }));
-    } catch {
+    } catch (err) {
       setResults((prev) => ({
         ...prev,
-        [wf.id]: { success: false, message: 'ネットワークエラー' },
+        [wf.id]: {
+          success: false,
+          message: err instanceof Error ? err.message : 'エラーが発生しました',
+        },
       }));
     } finally {
       setRunningWorkflows((prev) => {

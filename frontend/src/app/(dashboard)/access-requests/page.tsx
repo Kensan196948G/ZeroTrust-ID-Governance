@@ -5,9 +5,7 @@ import { useState } from 'react';
 import { CheckCircle2, XCircle, Clock, PlusCircle, Filter } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import type { AccessRequest } from '@/lib/api';
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((j) => j.data);
+import { accessApi, type AccessRequest } from '@/lib/api';
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   pending:  { label: '承認待ち', className: 'bg-yellow-900/40 text-yellow-300 border border-yellow-700/50' },
@@ -24,8 +22,8 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function AccessRequestsPage() {
   const { data: requests, isLoading, mutate } = useSWR<AccessRequest[]>(
-    '/api/v1/access-requests',
-    fetcher,
+    'access-requests',
+    () => accessApi.list(),
     { refreshInterval: 15_000 }
   );
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -33,11 +31,16 @@ export default function AccessRequestsPage() {
   const filtered = requests?.filter((r) => filter === 'all' || r.status === filter);
 
   async function handleAction(id: string, action: 'approve' | 'reject') {
-    const approverId = '00000000-0000-0000-0000-000000000001';
-    await fetch(`/api/v1/access-requests/${id}?action=${action}&approver_id=${approverId}`, {
-      method: 'PATCH',
-    });
-    mutate();
+    try {
+      if (action === 'approve') {
+        await accessApi.approve(id);
+      } else {
+        await accessApi.reject(id);
+      }
+      mutate();
+    } catch (err) {
+      console.error(`申請の${action === 'approve' ? '承認' : '却下'}に失敗しました:`, err);
+    }
   }
 
   const counts = {

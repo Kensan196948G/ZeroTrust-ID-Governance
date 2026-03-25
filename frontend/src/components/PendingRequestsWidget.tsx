@@ -4,24 +4,26 @@ import useSWR from 'swr';
 import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import type { AccessRequest } from '@/lib/api';
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((j) => j.data);
+import { accessApi, type AccessRequest } from '@/lib/api';
 
 export function PendingRequestsWidget() {
   const { data: requests, isLoading, mutate } = useSWR<AccessRequest[]>(
-    '/api/v1/access-requests/pending',
-    fetcher,
+    'pending-requests',
+    () => accessApi.pending(),
     { refreshInterval: 15_000 }
   );
 
   async function handleAction(id: string, action: 'approve' | 'reject') {
-    // デモ用 approver ID
-    const approverId = '00000000-0000-0000-0000-000000000001';
-    await fetch(`/api/v1/access-requests/${id}?action=${action}&approver_id=${approverId}`, {
-      method: 'PATCH',
-    });
-    mutate();
+    try {
+      if (action === 'approve') {
+        await accessApi.approve(id);
+      } else {
+        await accessApi.reject(id);
+      }
+      mutate();
+    } catch (err) {
+      console.error(`申請の${action === 'approve' ? '承認' : '却下'}に失敗しました:`, err);
+    }
   }
 
   if (isLoading) {

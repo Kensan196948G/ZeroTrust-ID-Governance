@@ -25,7 +25,7 @@ async function getDashboardStats() {
       ? (await pendingRes.value.json()).data
       : [];
 
-    const activeUsers = users.filter((u: { is_active: boolean }) => u.is_active).length;
+    const activeUsers = users.filter((u: { account_status: string }) => u.account_status === 'active').length;
     const highRiskUsers = users.filter((u: { risk_score: number }) => u.risk_score >= 70).length;
     const mfaEnabled = users.filter((u: { mfa_enabled: boolean }) => u.mfa_enabled).length;
     const mfaRate = users.length > 0 ? Math.round((mfaEnabled / users.length) * 100) : 0;
