@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.auth import CurrentUser, get_current_user, require_role
 from core.database import get_db
 from models.role import Role, UserRole
 
@@ -33,7 +34,10 @@ class RoleResponse(BaseModel):
 
 
 @router.get("/roles", summary="ロール一覧取得")
-async def list_roles(db: AsyncSession = Depends(get_db)) -> dict:
+async def list_roles(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
     result = await db.execute(select(Role))
     roles = result.scalars().all()
     return {
@@ -45,7 +49,11 @@ async def list_roles(db: AsyncSession = Depends(get_db)) -> dict:
 
 
 @router.post("/roles", status_code=201, summary="ロール作成")
-async def create_role(payload: RoleCreate, db: AsyncSession = Depends(get_db)) -> dict:
+async def create_role(
+    payload: RoleCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     role = Role(**payload.model_dump())
     db.add(role)
     await db.commit()
@@ -58,6 +66,7 @@ async def assign_role(
     user_id: uuid.UUID,
     role_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
 ) -> dict:
     user_role = UserRole(user_id=user_id, role_id=role_id)
     db.add(user_role)
@@ -70,6 +79,7 @@ async def revoke_role(
     user_id: uuid.UUID,
     role_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
 ) -> dict:
     result = await db.execute(
         select(UserRole).where(UserRole.user_id == user_id, UserRole.role_id == role_id)

@@ -1,13 +1,17 @@
 """ワークフロー API（棚卸・プロビジョニング・セキュリティ）"""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from core.auth import CurrentUser, require_role
 
 router = APIRouter()
 
 
 @router.post("/workflows/account-review", summary="アカウント棚卸ワークフロー開始")
 @router.post("/workflows/quarterly-review", summary="四半期棚卸（エイリアス）")
-async def start_account_review() -> dict:
+async def start_account_review(
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     """四半期ごとのアカウント棚卸ワークフローを開始（ILM-005）"""
     try:
         from tasks.review import start_quarterly_review
@@ -23,7 +27,10 @@ async def start_account_review() -> dict:
 
 
 @router.post("/workflows/provision/{user_id}", summary="手動プロビジョニング実行")
-async def trigger_provisioning(user_id: str) -> dict:
+async def trigger_provisioning(
+    user_id: str,
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     """指定ユーザのプロビジョニングを手動トリガー"""
     try:
         from tasks.provisioning import provision_new_user
@@ -39,7 +46,9 @@ async def trigger_provisioning(user_id: str) -> dict:
 
 
 @router.post("/workflows/consistency-check", summary="3システム整合性チェック")
-async def consistency_check() -> dict:
+async def consistency_check(
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     """EntraID/AD/HENGEONE の3システム間ユーザー整合性チェック"""
     try:
         from tasks.review import start_quarterly_review
@@ -55,7 +64,9 @@ async def consistency_check() -> dict:
 
 
 @router.post("/workflows/risk-scan", summary="全ユーザーリスクスキャン")
-async def risk_scan() -> dict:
+async def risk_scan(
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     """全ユーザーのリスクスコアを再計算する"""
     return {
         "success": True,
@@ -66,7 +77,9 @@ async def risk_scan() -> dict:
 
 
 @router.post("/workflows/pim-expiry", summary="PIM 期限切れ処理")
-async def pim_expiry() -> dict:
+async def pim_expiry(
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     """期限切れ特権アクセスを剥奪する（ILM-004）"""
     return {
         "success": True,
@@ -77,7 +90,9 @@ async def pim_expiry() -> dict:
 
 
 @router.post("/workflows/mfa-enforcement", summary="MFA未設定アカウント対応")
-async def mfa_enforcement() -> dict:
+async def mfa_enforcement(
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
+) -> dict:
     """MFA未設定の高リスクアカウントを自動停止する"""
     return {
         "success": True,

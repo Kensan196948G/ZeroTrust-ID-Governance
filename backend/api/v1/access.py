@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.auth import CurrentUser, get_current_user, require_role
 from core.database import get_db
 from models.access_request import AccessRequest
 
@@ -34,7 +35,10 @@ class AccessRequestResponse(BaseModel):
 
 
 @router.get("/access-requests", summary="申請一覧")
-async def list_requests(db: AsyncSession = Depends(get_db)) -> dict:
+async def list_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
     result = await db.execute(
         select(AccessRequest).order_by(AccessRequest.created_at.desc()).limit(100)
     )
@@ -49,9 +53,10 @@ async def list_requests(db: AsyncSession = Depends(get_db)) -> dict:
 @router.post("/access-requests", status_code=201, summary="新規アクセス申請")
 async def create_request(
     payload: AccessRequestCreate,
-    requester_id: uuid.UUID,  # 本番は JWT から取得
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> dict:
+    requester_id = uuid.UUID(current_user.user_id)
     req = AccessRequest(requester_id=requester_id, **payload.model_dump())
     db.add(req)
     await db.commit()
@@ -60,7 +65,10 @@ async def create_request(
 
 
 @router.get("/access-requests/pending", summary="承認待ち一覧")
-async def pending_requests(db: AsyncSession = Depends(get_db)) -> dict:
+async def pending_requests(
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+) -> dict:
     result = await db.execute(
         select(AccessRequest).where(AccessRequest.status == "pending")
     )
@@ -76,9 +84,10 @@ async def pending_requests(db: AsyncSession = Depends(get_db)) -> dict:
 async def update_request(
     request_id: uuid.UUID,
     action: str,  # "approve" or "reject"
-    approver_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(require_role("GlobalAdmin")),
 ) -> dict:
+    approver_id = uuid.UUID(current_user.user_id)
     result = await db.execute(
         select(AccessRequest).where(AccessRequest.id == request_id)
     )
