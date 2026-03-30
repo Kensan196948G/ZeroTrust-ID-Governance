@@ -9,8 +9,8 @@
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](frontend/)
-[![Tests](https://img.shields.io/badge/Tests-320%20backend%20%2B%2088%20frontend-brightgreen.svg)](backend/tests/)
-[![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-81%25-yellow.svg)](frontend/)
+[![Tests](https://img.shields.io/badge/Tests-320%20backend%20%2B%20140%20frontend-brightgreen.svg)](backend/tests/)
+[![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-96%25-brightgreen.svg)](frontend/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
 [![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
 
@@ -53,7 +53,8 @@
 | **Phase 16** | フロントエンド単体テスト基盤 | ✅ 完了 | Vitest + React Testing Library 33テスト・CI Node.js 22/24対応 |
 | **Phase 17** | フロントエンド追加テスト | ✅ 完了 | PendingRequestsWidget・Sidebar・5ページコンポーネント 88テスト (#41) |
 | **Phase 18** | バックエンドカバレッジ完全制覇 | ✅ 完了 | token_store/workflows/auth/models 完全カバー・97%→99% (+47テスト) |
-| **Phase 19** | フロントエンドカバレッジ計測基盤 | 🔄 実装中 | Vitest coverage-v8・除外設定最適化・CI Codecov統合・81% Stmts |
+| **Phase 19** | フロントエンドカバレッジ計測基盤 | ✅ 完了 | Vitest coverage-v8・除外設定最適化・81% Stmts / 90% Branch (#45) |
+| **Phase 20** | lib/api.ts テスト完全制覇 | ✅ 完了 | 19.81%→100% Stmts・140テスト・全体 96.31% (#46) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -579,8 +580,8 @@ MIT License - [LICENSE](LICENSE)
 |------|-----|-----------|
 | バックエンド単体テスト | **320件 PASS** | Phase 18 |
 | テストカバレッジ | **99%** | Phase 18 |
-| フロントエンド単体テスト | **88件 PASS** | Phase 17 |
-| フロントエンドカバレッジ | **81% Stmts / 90% Branch** | Phase 19 |
+| フロントエンド単体テスト | **140件 PASS** | Phase 20 |
+| フロントエンドカバレッジ | **96.31% Stmts / 91% Branch** | Phase 20 |
 | E2E テスト | Playwright + Newman | Phase 15 |
 | CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 18 |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
