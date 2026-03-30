@@ -12,7 +12,7 @@ Celery カバレッジ完全達成テスト（Phase 21b）
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -97,7 +97,7 @@ class TestDeprovisionUserRetry:
 
         with (
             patch("tasks.provisioning._get_sync_session", return_value=session_cm),
-            patch("tasks.provisioning.IdentityEngine") as mock_engine_cls,
+            patch("tasks.provisioning.IdentityEngine"),
             patch("asyncio.run", side_effect=RuntimeError("broker unavailable")),
         ):
             # self.retry は Retry 例外を raise する
@@ -107,7 +107,6 @@ class TestDeprovisionUserRetry:
     def test_deprovision_user_retry_raises_via_apply(self) -> None:
         """apply() 呼び出しで IdentityEngine 例外 → retry が実行される"""
         from tasks.provisioning import deprovision_user
-        from celery.exceptions import Retry
 
         user_id = str(uuid.uuid4())
         user = _make_user(user_id)
@@ -133,7 +132,6 @@ class TestTransferUserRetry:
     def test_transfer_user_retries_on_engine_exception(self) -> None:
         """IdentityEngine.transfer_user が例外を投げると self.retry が呼ばれる（line 183-184）"""
         from tasks.provisioning import transfer_user
-        from celery.exceptions import Retry
 
         user_id = str(uuid.uuid4())
         user = _make_user(user_id)
