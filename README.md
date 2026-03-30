@@ -10,7 +10,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2.35-black.svg)](frontend/)
 [![Tests](https://img.shields.io/badge/Tests-331%20backend%20%2B%20148%20frontend-brightgreen.svg)](backend/tests/)
-[![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-98.79%25-brightgreen.svg)](frontend/)
+[![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-98.87%25-brightgreen.svg)](frontend/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
 [![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
 
@@ -58,6 +58,7 @@
 | **Phase 21a** | Next.js セキュリティ修正 | ✅ 完了 | GHSA-f82v-jwr5-mffw (CVSS 9.1) 解消・14.2.5→14.2.35 (#47) |
 | **Phase 21b** | バックエンドカバレッジ完全制覇 | ✅ 完了 | Celery+Identity Engine 100%・99%→99.5%・+11テスト (#47) |
 | **Phase 22** | フロントエンドカバレッジ向上 | ✅ 完了 | 96.31%→98.79% Stmts・+8テスト・148件 (#48) |
+| **Phase 23** | App Router ストリーミング最適化 | ✅ 完了 | loading.tsx / error.tsx 追加・+13テスト・161件・98.87% (#49) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -469,7 +470,7 @@ pytest --cov=. --cov-report=term-missing
 | **E2E (Newman)** | — | 全APIエンドポイント | Postman/Newman バックエンドAPI |
 | **E2E (Playwright)** | — | 認証/ナビゲーション/ページ遷移 | フロントエンド E2E |
 | **フロントエンド Components** | 🟢 **99.6%** | 88件 | Vitest + React Testing Library（Phase 19） |
-| **フロントエンド 全体** | 🟢 **98.79%** | 148件 | RootPage 0%→100%・エラーパス補完・98.79% Stmts（Phase 22） |
+| **フロントエンド 全体** | 🟢 **98.87%** | 161件 | loading.tsx/error.tsx 追加・98.87% Stmts・92.78% Branch（Phase 23） |
 | **全体バックエンド** | 🟢 **99.5%** | **331件** | Phase 21b 完了（Celery+Identity Engine 100%） |
 
 ---
@@ -583,8 +584,8 @@ MIT License - [LICENSE](LICENSE)
 |------|-----|-----------|
 | バックエンド単体テスト | **331件 PASS** | Phase 21b |
 | テストカバレッジ | **99.5%** | Phase 21b |
-| フロントエンド単体テスト | **148件 PASS** | Phase 22 |
-| フロントエンドカバレッジ | **98.79% Stmts / 92.6% Branch** | Phase 22 |
+| フロントエンド単体テスト | **161件 PASS** | Phase 23 |
+| フロントエンドカバレッジ | **98.87% Stmts / 92.78% Branch** | Phase 23 |
 | E2E テスト | Playwright + Newman | Phase 15 |
 | CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 21 |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
