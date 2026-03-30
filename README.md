@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
-[![Next.js](https://img.shields.io/badge/Next.js-14.2.35-black.svg)](frontend/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5.14-black.svg)](frontend/)
 [![Tests](https://img.shields.io/badge/Tests-331%20backend%20%2B%20148%20frontend-brightgreen.svg)](backend/tests/)
 [![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-98.87%25-brightgreen.svg)](frontend/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
@@ -59,6 +59,7 @@
 | **Phase 21b** | バックエンドカバレッジ完全制覇 | ✅ 完了 | Celery+Identity Engine 100%・99%→99.5%・+11テスト (#47) |
 | **Phase 22** | フロントエンドカバレッジ向上 | ✅ 完了 | 96.31%→98.79% Stmts・+8テスト・148件 (#48) |
 | **Phase 23** | App Router ストリーミング最適化 | ✅ 完了 | loading.tsx / error.tsx 追加・+13テスト・161件・98.87% (#49) |
+| **Phase 24** | Next.js セキュリティアップグレード | ✅ 完了 | 14.2.35→15.5.14・High×4件解消・本番脆弱性0件 (#50) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -67,7 +68,7 @@
 
 ```mermaid
 graph TB
-    subgraph Frontend["🖥 Frontend (Next.js 14)"]
+    subgraph Frontend["🖥 Frontend (Next.js 15)"]
         UI[ダッシュボード]
         UM[ユーザー管理]
         AR[アクセス申請]
@@ -254,7 +255,7 @@ graph TB
 ```mermaid
 graph LR
     subgraph FE["Frontend"]
-        NX[Next.js 14]
+        NX[Next.js 15]
         SWR[SWR]
         RC[Recharts]
         LR[Lucide React]
@@ -280,7 +281,7 @@ graph LR
 
 | レイヤー | 技術 | バージョン | 用途 |
 |----------|------|-----------|------|
-| **Frontend** | Next.js | 14.2 | App Router, Server Components |
+| **Frontend** | Next.js | 15.5 | App Router, Server Components |
 | | SWR | 2.2 | リアルタイムポーリング（15〜30秒） |
 | | Recharts | 2.12 | リスクスコアグラフ |
 | | Tailwind CSS | 3.4 | ダークテーマUI |
@@ -497,7 +498,7 @@ ZeroTrust-ID-Governance/
 │   ├── models/             # SQLAlchemy モデル
 │   ├── tasks/              # Celery 非同期タスク
 │   └── tests/              # pytest テストスイート (191件)
-├── 📂 frontend/             # Next.js 14 フロントエンド
+├── 📂 frontend/             # Next.js 15 フロントエンド
 │   └── src/
 │       ├── app/            # App Router ページ
 │       │   └── (dashboard)/ # ダッシュボードレイアウト
