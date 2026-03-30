@@ -8,8 +8,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](frontend/)
-[![Tests](https://img.shields.io/badge/Tests-320%20backend%20%2B%20140%20frontend-brightgreen.svg)](backend/tests/)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2.35-black.svg)](frontend/)
+[![Tests](https://img.shields.io/badge/Tests-331%20backend%20%2B%20140%20frontend-brightgreen.svg)](backend/tests/)
 [![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-96%25-brightgreen.svg)](frontend/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
 [![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
@@ -55,6 +55,8 @@
 | **Phase 18** | バックエンドカバレッジ完全制覇 | ✅ 完了 | token_store/workflows/auth/models 完全カバー・97%→99% (+47テスト) |
 | **Phase 19** | フロントエンドカバレッジ計測基盤 | ✅ 完了 | Vitest coverage-v8・除外設定最適化・81% Stmts / 90% Branch (#45) |
 | **Phase 20** | lib/api.ts テスト完全制覇 | ✅ 完了 | 19.81%→100% Stmts・140テスト・全体 96.31% (#46) |
+| **Phase 21a** | Next.js セキュリティ修正 | ✅ 完了 | GHSA-f82v-jwr5-mffw (CVSS 9.1) 解消・14.2.5→14.2.35 (#47) |
+| **Phase 21b** | バックエンドカバレッジ完全制覇 | ✅ 完了 | Celery+Identity Engine 100%・99%→99.5%・+11テスト (#47) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -454,10 +456,10 @@ pytest --cov=. --cov-report=term-missing
 |---------------|-------------|---------|------|
 | **Risk Engine** | 🟢 **100%** | 18件 | 境界値テスト、スコアクランプ、決定木 |
 | **Policy Engine** | 🟢 **100%** | 22件 | SoD違反 if/elif 両ブランチ、条件付きアクセス、ABAC |
-| **Identity Engine** | 🟢 **94%** | 19件 | プロビジョニング統合テスト（0%→94%） |
+| **Identity Engine** | 🟢 **100%** | 22件 | プロビジョニング統合テスト・例外パス（Phase 21b） |
 | **API endpoints** | 🟢 **99%** | 116件 | CRUD・ワークフロー・認証・セキュリティヘッダー |
 | **RBAC** | 🟢 **90%** | 12件 | ロール別エンドポイントアクセス制御 |
-| **Celery Tasks** | 🟢 **96%** | 22件 | 非同期プロビジョニングタスク |
+| **Celery Tasks** | 🟢 **100%** | 30件 | 非同期タスク・broker例外リトライパス（Phase 21b） |
 | **Auth (JWT)** | 🟢 **100%** | 31件 | JWT RS256・リフレッシュ・失効・test-login |
 | **Audit Middleware** | 🟢 **100%** | 22件 | SHA256チェーン・監査ログ記録 |
 | **Token Store** | 🟢 **100%** | 12件 | Redis JWT ブラックリスト・フェイルオープン |
@@ -466,8 +468,8 @@ pytest --cov=. --cov-report=term-missing
 | **E2E (Newman)** | — | 全APIエンドポイント | Postman/Newman バックエンドAPI |
 | **E2E (Playwright)** | — | 認証/ナビゲーション/ページ遷移 | フロントエンド E2E |
 | **フロントエンド Components** | 🟢 **99.6%** | 88件 | Vitest + React Testing Library（Phase 19） |
-| **フロントエンド 全体** | 🟡 **81%** | 88件 | Statements カバレッジ（lib/api.ts は外部依存で低） |
-| **全体バックエンド** | 🟢 **99%** | **320件** | Phase 18 完了 |
+| **フロントエンド 全体** | 🟢 **96.31%** | 140件 | lib/api.ts 100%達成・全体 96.31% Stmts（Phase 20） |
+| **全体バックエンド** | 🟢 **99.5%** | **331件** | Phase 21b 完了（Celery+Identity Engine 100%） |
 
 ---
 
@@ -578,12 +580,12 @@ MIT License - [LICENSE](LICENSE)
 
 | 指標 | 値 | 達成フェーズ |
 |------|-----|-----------|
-| バックエンド単体テスト | **320件 PASS** | Phase 18 |
-| テストカバレッジ | **99%** | Phase 18 |
+| バックエンド単体テスト | **331件 PASS** | Phase 21b |
+| テストカバレッジ | **99.5%** | Phase 21b |
 | フロントエンド単体テスト | **140件 PASS** | Phase 20 |
 | フロントエンドカバレッジ | **96.31% Stmts / 91% Branch** | Phase 20 |
 | E2E テスト | Playwright + Newman | Phase 15 |
-| CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 18 |
+| CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 21 |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
