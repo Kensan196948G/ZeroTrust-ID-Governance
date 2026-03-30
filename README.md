@@ -4,12 +4,12 @@
 > 建設業600名のユーザーライフサイクルをゼロトラスト原則で完全自動管理
 
 [![CI](https://github.com/Kensan196948G/ZeroTrust-ID-Governance/actions/workflows/claudeos-ci.yml/badge.svg)](https://github.com/Kensan196948G/ZeroTrust-ID-Governance/actions)
-[![Coverage](https://img.shields.io/badge/Coverage-97%25-brightgreen.svg)](backend/)
+[![Coverage](https://img.shields.io/badge/Coverage-99%25-brightgreen.svg)](backend/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](frontend/)
-[![Tests](https://img.shields.io/badge/Tests-273%20backend%20%2B%2088%20frontend-brightgreen.svg)](backend/tests/)
+[![Tests](https://img.shields.io/badge/Tests-320%20backend%20%2B%2088%20frontend-brightgreen.svg)](backend/tests/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
 [![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
 
@@ -51,6 +51,7 @@
 | **Phase 15** | E2E テスト統合 | ✅ 完了 | Playwright（フロントエンド）+ Newman（API）CI統合 |
 | **Phase 16** | フロントエンド単体テスト基盤 | ✅ 完了 | Vitest + React Testing Library 33テスト・CI Node.js 22/24対応 |
 | **Phase 17** | フロントエンド追加テスト | ✅ 完了 | PendingRequestsWidget・Sidebar・5ページコンポーネント 88テスト (#41) |
+| **Phase 18** | バックエンドカバレッジ完全制覇 | 🔄 PR#43 | token_store/workflows/auth/models 完全カバー・97%→99% (+47テスト) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -448,17 +449,20 @@ pytest --cov=. --cov-report=term-missing
 
 | テストスイート | カバレッジ実績 | テスト件数 | 内容 |
 |---------------|-------------|---------|------|
-| **Risk Engine** | 🟢 **98%** | 18件 | 境界値テスト、スコアクランプ、決定木 |
-| **Policy Engine** | 🟢 **95%** | 22件 | SoD違反、条件付きアクセス、ABAC |
+| **Risk Engine** | 🟢 **100%** | 18件 | 境界値テスト、スコアクランプ、決定木 |
+| **Policy Engine** | 🟢 **100%** | 22件 | SoD違反 if/elif 両ブランチ、条件付きアクセス、ABAC |
 | **Identity Engine** | 🟢 **94%** | 19件 | プロビジョニング統合テスト（0%→94%） |
-| **API endpoints** | 🟢 **98%** | 107件 | CRUD・ワークフロー・認証・セキュリティヘッダー |
+| **API endpoints** | 🟢 **99%** | 116件 | CRUD・ワークフロー・認証・セキュリティヘッダー |
 | **RBAC** | 🟢 **90%** | 12件 | ロール別エンドポイントアクセス制御 |
-| **Celery Tasks** | 🟢 **94%** | 22件 | 非同期プロビジョニングタスク |
+| **Celery Tasks** | 🟢 **96%** | 22件 | 非同期プロビジョニングタスク |
 | **Auth (JWT)** | 🟢 **100%** | 31件 | JWT RS256・リフレッシュ・失効・test-login |
 | **Audit Middleware** | 🟢 **100%** | 22件 | SHA256チェーン・監査ログ記録 |
+| **Token Store** | 🟢 **100%** | 12件 | Redis JWT ブラックリスト・フェイルオープン |
+| **Workflows API** | 🟢 **100%** | 9件 | Celery失敗 except ブランチ・ロール制御 |
+| **Models** | 🟢 **100%** | 8件 | __repr__ / compute_hash 全カバー |
 | **E2E (Newman)** | — | 全APIエンドポイント | Postman/Newman バックエンドAPI |
 | **E2E (Playwright)** | — | 認証/ナビゲーション/ページ遷移 | フロントエンド E2E |
-| **全体** | 🟢 **97%** | **273件** | CI連続成功 N=3 STABLE達成 |
+| **全体** | 🟢 **99%** | **320件** | Phase 18 PR#43・CI 実行中 |
 
 ---
 
@@ -569,10 +573,11 @@ MIT License - [LICENSE](LICENSE)
 
 | 指標 | 値 | 達成フェーズ |
 |------|-----|-----------|
-| 単体テスト | **273件 PASS** | Phase 15 |
-| テストカバレッジ | **97%** | Phase 15 |
+| バックエンド単体テスト | **320件 PASS** | Phase 18 |
+| テストカバレッジ | **99%** | Phase 18 |
+| フロントエンド単体テスト | **88件 PASS** | Phase 17 |
 | E2E テスト | Playwright + Newman | Phase 15 |
-| CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 15 |
+| CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 18 |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
