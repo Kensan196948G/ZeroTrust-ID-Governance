@@ -167,4 +167,82 @@ describe('AuditPage', () => {
 
     expect(screen.getByText('失敗')).toBeInTheDocument();
   });
+
+  it('CSV エクスポートボタンクリックでダウンロードが実行される（lines 48-55）', async () => {
+    const user = userEvent.setup();
+    const { auditApi } = await import('@/lib/api');
+
+    // jsdom には URL.createObjectURL が存在しないため グローバルに定義してから spy
+    const mockObjectUrl = 'blob:http://localhost/mock-url';
+    if (!URL.createObjectURL) {
+      URL.createObjectURL = vi.fn();
+    }
+    if (!URL.revokeObjectURL) {
+      URL.revokeObjectURL = vi.fn();
+    }
+    const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue(mockObjectUrl);
+    const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    // <a>.click() をキャプチャするため createElement をモック
+    const mockClick = vi.fn();
+    const mockAnchor = { href: '', download: '', click: mockClick } as unknown as HTMLAnchorElement;
+    const origCreateElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'a') return mockAnchor;
+      return origCreateElement(tag);
+    });
+
+    setupSWR(mockLogs, false);
+    render(<AuditPage />);
+
+    const exportButton = screen.getByText('CSV エクスポート');
+    await user.click(exportButton);
+
+    await waitFor(() => {
+      expect(auditApi.exportCsv).toHaveBeenCalled();
+      expect(createObjectURLSpy).toHaveBeenCalled();
+      expect(mockClick).toHaveBeenCalled();
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith(mockObjectUrl);
+    });
+
+    createObjectURLSpy.mockRestore();
+    revokeObjectURLSpy.mockRestore();
+    vi.spyOn(document, 'createElement').mockRestore();
+  });
+
+  it('CSV エクスポート失敗時に alert が表示される（lines 56-59）', async () => {
+    const user = userEvent.setup();
+    const { auditApi } = await import('@/lib/api');
+    vi.mocked(auditApi.exportCsv).mockRejectedValueOnce(new Error('Forbidden'));
+
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    setupSWR(mockLogs, false);
+    render(<AuditPage />);
+
+    const exportButton = screen.getByText('CSV エクスポート');
+    await user.click(exportButton);
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(
+        expect.stringContaining('CSV エクスポートに失敗しました')
+      );
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    alertSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('検索結果が0件のとき「ログがありません」が表示される（lines 134-138）', async () => {
+    const user = userEvent.setup();
+    setupSWR(mockLogs, false);
+    render(<AuditPage />);
+
+    const searchInput = screen.getByPlaceholderText('アクション・イベント種別・ソースシステムで検索...');
+    await user.type(searchInput, 'NONEXISTENT_ACTION_XYZ');
+
+    expect(screen.getByText('ログがありません')).toBeInTheDocument();
+  });
 });
