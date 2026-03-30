@@ -9,7 +9,7 @@
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](frontend/)
-[![Tests](https://img.shields.io/badge/Tests-273%20passed-brightgreen.svg)](backend/tests/)
+[![Tests](https://img.shields.io/badge/Tests-273%20backend%20%2B%2088%20frontend-brightgreen.svg)](backend/tests/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
 [![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
 
@@ -49,6 +49,8 @@
 | **Phase 13** | テストカバレッジ強化 | ✅ 完了 | entra_connector/auth/audit_middleware 100%・全体 96% |
 | **Phase 14** | セキュリティミドルウェア | ✅ 完了 | HSTS/CSP/レート制限・セキュリティヘッダー 15項目実装 |
 | **Phase 15** | E2E テスト統合 | ✅ 完了 | Playwright（フロントエンド）+ Newman（API）CI統合 |
+| **Phase 16** | フロントエンド単体テスト基盤 | ✅ 完了 | Vitest + React Testing Library 33テスト・CI Node.js 22/24対応 |
+| **Phase 17** | フロントエンド追加テスト | ✅ 完了 | PendingRequestsWidget・Sidebar・5ページコンポーネント 88テスト (#41) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
