@@ -10,6 +10,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](frontend/)
 [![Tests](https://img.shields.io/badge/Tests-320%20backend%20%2B%2088%20frontend-brightgreen.svg)](backend/tests/)
+[![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-81%25-yellow.svg)](frontend/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
 [![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
 
@@ -51,7 +52,8 @@
 | **Phase 15** | E2E テスト統合 | ✅ 完了 | Playwright（フロントエンド）+ Newman（API）CI統合 |
 | **Phase 16** | フロントエンド単体テスト基盤 | ✅ 完了 | Vitest + React Testing Library 33テスト・CI Node.js 22/24対応 |
 | **Phase 17** | フロントエンド追加テスト | ✅ 完了 | PendingRequestsWidget・Sidebar・5ページコンポーネント 88テスト (#41) |
-| **Phase 18** | バックエンドカバレッジ完全制覇 | 🔄 PR#43 | token_store/workflows/auth/models 完全カバー・97%→99% (+47テスト) |
+| **Phase 18** | バックエンドカバレッジ完全制覇 | ✅ 完了 | token_store/workflows/auth/models 完全カバー・97%→99% (+47テスト) |
+| **Phase 19** | フロントエンドカバレッジ計測基盤 | 🔄 実装中 | Vitest coverage-v8・除外設定最適化・CI Codecov統合・81% Stmts |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -462,7 +464,9 @@ pytest --cov=. --cov-report=term-missing
 | **Models** | 🟢 **100%** | 8件 | __repr__ / compute_hash 全カバー |
 | **E2E (Newman)** | — | 全APIエンドポイント | Postman/Newman バックエンドAPI |
 | **E2E (Playwright)** | — | 認証/ナビゲーション/ページ遷移 | フロントエンド E2E |
-| **全体** | 🟢 **99%** | **320件** | Phase 18 PR#43・CI 実行中 |
+| **フロントエンド Components** | 🟢 **99.6%** | 88件 | Vitest + React Testing Library（Phase 19） |
+| **フロントエンド 全体** | 🟡 **81%** | 88件 | Statements カバレッジ（lib/api.ts は外部依存で低） |
+| **全体バックエンド** | 🟢 **99%** | **320件** | Phase 18 完了 |
 
 ---
 
@@ -576,6 +580,7 @@ MIT License - [LICENSE](LICENSE)
 | バックエンド単体テスト | **320件 PASS** | Phase 18 |
 | テストカバレッジ | **99%** | Phase 18 |
 | フロントエンド単体テスト | **88件 PASS** | Phase 17 |
+| フロントエンドカバレッジ | **81% Stmts / 90% Branch** | Phase 19 |
 | E2E テスト | Playwright + Newman | Phase 15 |
 | CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 18 |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
