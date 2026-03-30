@@ -195,4 +195,63 @@ describe('AccessRequestsPage', () => {
     expect(screen.getByText('(2)')).toBeInTheDocument();
     expect(screen.getAllByText('(1)')).toHaveLength(2);
   });
+
+  it('accessApi.approve が失敗してもクラッシュしない（line 42-43 catch）', async () => {
+    const user = userEvent.setup();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(accessApi.approve).mockRejectedValueOnce(new Error('Network error'));
+
+    setupSWR(mockRequests, false);
+    render(<AccessRequestsPage />);
+
+    const approveButtons = screen.getAllByRole('button').filter(
+      (btn) => btn.className.includes('rounded-lg') && btn.textContent?.includes('承認')
+    );
+    await user.click(approveButtons[0]);
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('承認に失敗しました'),
+        expect.any(Error)
+      );
+    });
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('accessApi.reject が失敗してもクラッシュしない（line 42-43 catch）', async () => {
+    const user = userEvent.setup();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(accessApi.reject).mockRejectedValueOnce(new Error('Auth error'));
+
+    setupSWR(mockRequests, false);
+    render(<AccessRequestsPage />);
+
+    const rejectButtons = screen.getAllByRole('button').filter(
+      (btn) => btn.className.includes('rounded-lg') && btn.textContent?.includes('却下')
+    );
+    await user.click(rejectButtons[0]);
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('却下に失敗しました'),
+        expect.any(Error)
+      );
+    });
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('フィルター絞り込みで結果0件のとき「申請がありません」が表示される（lines 123-128）', async () => {
+    const user = userEvent.setup();
+    // approved のみのデータで「承認待ち」タブをクリックすると0件になる
+    const approvedOnly = [mockRequests[1]]; // status: 'approved' のみ
+    setupSWR(approvedOnly, false);
+    render(<AccessRequestsPage />);
+
+    const filterButtons = screen.getAllByRole('button').filter(
+      (btn) => btn.className.includes('rounded-full')
+    );
+    await user.click(filterButtons[1]); // 承認待ちタブ
+
+    expect(screen.getByText('申請がありません')).toBeInTheDocument();
+  });
 });
