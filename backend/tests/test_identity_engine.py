@@ -386,3 +386,62 @@ class TestVerifyConsistency:
 
         assert result["entra"]["active"] is False
         assert result["ad"]["active"] is True
+
+
+# ============================================================
+# identity_engine.py:105-106, 111-112 — deprovision 例外パス補完（Phase 21b）
+# ============================================================
+
+class TestDeprovisionUserExceptionPaths:
+    """AD / HENGEONE の無効化例外パスをカバー"""
+
+    @pytest.mark.asyncio
+    async def test_deprovision_ad_failure_collects_error(
+        self,
+        engine: IdentityEngine,
+        mock_ad: MagicMock,
+    ) -> None:
+        """AD disable_account 失敗はエラーとして収集される（line 105-106）"""
+        mock_ad.disable_account.side_effect = Exception("LDAP connection error")
+
+        user_data = {"ad_dn": "CN=testuser,OU=Users,DC=example,DC=com"}
+        result = await engine.deprovision_user(user_data)
+
+        assert any("AD 無効化失敗" in e for e in result["errors"])
+
+    @pytest.mark.asyncio
+    async def test_deprovision_hengeone_failure_collects_error(
+        self,
+        engine: IdentityEngine,
+        mock_hengeone: AsyncMock,
+    ) -> None:
+        """HENGEONE deprovision 失敗はエラーとして収集される（line 111-112）"""
+        mock_hengeone.deprovision_user.side_effect = Exception("API timeout")
+
+        user_data = {"hengeone_id": "ho-456"}
+        result = await engine.deprovision_user(user_data)
+
+        assert any("HENGEONE 無効化失敗" in e for e in result["errors"])
+
+
+# ============================================================
+# identity_engine.py:170-171 — transfer_user Entra 例外パス補完（Phase 21b）
+# ============================================================
+
+class TestTransferUserEntraExceptionPath:
+    """Entra ID 異動処理の例外パスをカバー"""
+
+    @pytest.mark.asyncio
+    async def test_transfer_entra_failure_collects_error(
+        self,
+        engine: IdentityEngine,
+        mock_entra: AsyncMock,
+    ) -> None:
+        """Entra ID patch が失敗するとエラーとして収集される（line 170-171）"""
+        mock_entra._get_headers.side_effect = Exception("Token refresh failed")
+
+        user_data = {"entra_object_id": "entra-123"}
+        transfer_info = {"new_department": "Legal", "new_job_title": "Counsel"}
+        result = await engine.transfer_user(user_data, transfer_info)
+
+        assert any("Entra ID 異動処理失敗" in e for e in result["errors"])
