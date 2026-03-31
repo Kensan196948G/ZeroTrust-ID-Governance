@@ -409,3 +409,55 @@ jobs:
         run: |
           echo "CI_FAILED=true" >> "$GITHUB_ENV"
           echo "Auto Repair Loop trigger required"
+
+  # ===================================
+  # Helm chart OCI registry publish（main push のみ）
+  # ===================================
+  helm-publish:
+    name: ⎈ Helm OCI Publish (ghcr.io)
+    needs: [ci-gate]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+
+      - name: ⎈ Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "3.16.0"
+
+      - name: 🔐 Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            helm registry login ghcr.io \
+              --username ${{ github.actor }} \
+              --password-stdin
+
+      - name: 📦 Package Helm chart
+        run: |
+          helm package helm/zerotrust-id-governance \
+            --destination /tmp/helm-charts
+
+      - name: 🚀 Push to GHCR OCI registry
+        run: |
+          CHART_VERSION=$(grep '^version:' helm/zerotrust-id-governance/Chart.yaml | awk '{print $2}')
+          CHART_NAME=$(grep '^name:' helm/zerotrust-id-governance/Chart.yaml | awk '{print $2}')
+          REGISTRY="ghcr.io/${{ github.repository_owner }}/charts"
+          echo "Publishing ${CHART_NAME} v${CHART_VERSION} to ${REGISTRY}"
+          helm push "/tmp/helm-charts/${CHART_NAME}-${CHART_VERSION}.tgz" "oci://${REGISTRY}"
+
+      - name: ✅ Publish summary
+        run: |
+          CHART_VERSION=$(grep '^version:' helm/zerotrust-id-governance/Chart.yaml | awk '{print $2}')
+          echo "## ⎈ Helm Chart Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 項目 | 値 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Chart | zerotrust-id-governance |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | ${CHART_VERSION} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Registry | oci://ghcr.io/${{ github.repository_owner }}/charts |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trigger | ${{ github.sha }} |" >> "$GITHUB_STEP_SUMMARY"
