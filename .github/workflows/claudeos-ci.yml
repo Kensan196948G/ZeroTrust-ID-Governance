@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
@@ -92,10 +92,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -126,10 +126,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
@@ -163,10 +163,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🔐 Trivy scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -211,7 +211,7 @@ jobs:
 
     steps:
       - name: "\U0001F4E5 Checkout"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "\U0001F40D Setup Python"
         uses: actions/setup-python@v5
@@ -249,7 +249,7 @@ jobs:
           done
 
       - name: "\U0001F7E2 Setup Node.js"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -266,7 +266,7 @@ jobs:
 
       - name: "\U0001F4CA Upload Newman results"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: newman-results
           path: newman-results.xml
@@ -281,10 +281,10 @@ jobs:
 
     steps:
       - name: "\U0001F4E5 Checkout"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "\U0001F7E2 Setup Node.js"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -327,7 +327,7 @@ jobs:
 
       - name: "\U0001F4CA Upload Playwright results"
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-results
           path: |
