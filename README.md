@@ -68,6 +68,7 @@
 | **Phase 28** | Observability強化 | ✅ 完了 | Prometheus `/metrics`エンドポイント・Helm scrape annotation・13+3=13テスト (#51) |
 | **Phase 29** | Secrets管理強化 | ✅ 完了 | ESO ExternalSecret + Azure Key Vault統合・Workload Identity・secret.yaml条件化 (#52) |
 | **Phase 30** | OpenTelemetry分散トレーシング | ✅ 完了 | OTEL SDK + FastAPI自動計装・Jaeger All-in-One Helm・OTLP gRPC・16テスト (#53) |
+| **Phase 31** | Grafana Dashboardダッシュボード | ✅ 完了 | Grafana Helm・Prometheusデータソース自動プロビジョニング・HTTP REDメトリクス (#54) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -603,6 +604,7 @@ MIT License - [LICENSE](LICENSE)
 | Observability | **Prometheus `/metrics`**（prometheus-fastapi-instrumentator・HTTP REDメトリクス自動収集） | Phase 28 |
 | Secrets管理 | **ESO ExternalSecret + Azure Key Vault**（Workload Identity・refreshInterval 1h・secretMapping 9キー） | Phase 29 ✅ |
 | 分散トレーシング | **OpenTelemetry OTLP + Jaeger All-in-One**（FastAPI自動計装・BatchSpanProcessor・OTEL_SDK_DISABLED対応） | Phase 30 ✅ |
+| 可視化ダッシュボード | **Grafana 11.5.2**（Prometheusデータソース自動プロビジョニング・HTTP REDダッシュボード・Jaegerトレース統合） | Phase 31 ✅ |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -611,4 +613,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜30 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・Helm chart + CI 8ジョブ対応・Prometheus + OpenTelemetry Observability統合・ESO Azure Key Vault Secrets管理*
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜31 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・Helm chart + CI 8ジョブ対応・Prometheus + OTEL + Grafana Observabilityスタック・ESO Azure Key Vault Secrets管理*
