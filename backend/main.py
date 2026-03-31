@@ -12,6 +12,12 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from api.v1 import access, audit, auth, roles, users, workflows
@@ -24,9 +30,42 @@ from models import base  # noqa: F401 – テーブル登録のため必要
 logger = structlog.get_logger(__name__)
 
 
+def _setup_tracing() -> None:
+    """OpenTelemetry 分散トレーシング初期化
+
+    OTEL_SDK_DISABLED=true の場合（テスト環境等）はスキップ。
+    OTEL_EXPORTER_OTLP_ENDPOINT 未設定時は Jaeger デフォルト
+    (localhost:4317) にフォールバック。
+
+    ISO27001 A.8.16: セキュリティ監視 / NIST CSF DE.CM-01: 継続的モニタリング
+    """
+    import os
+
+    if os.getenv("OTEL_SDK_DISABLED", "false").lower() == "true":
+        logger.info("OpenTelemetry SDK disabled by OTEL_SDK_DISABLED=true")
+        return
+
+    resource = Resource.create(
+        {
+            "service.name": "zerotrust-id-governance",
+            "service.version": settings.APP_VERSION,
+            "deployment.environment": settings.APP_ENV,
+        }
+    )
+    provider = TracerProvider(resource=resource)
+
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+    exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+
+    trace.set_tracer_provider(provider)
+    logger.info("OpenTelemetry tracing initialized", endpoint=otlp_endpoint)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """アプリケーション起動・終了時の処理"""
+    _setup_tracing()
     logger.info("Starting ZeroTrust-ID-Governance API", version=settings.APP_VERSION)
     yield
     logger.info("Shutting down ZeroTrust-ID-Governance API")
@@ -114,6 +153,13 @@ app.include_router(audit.router, prefix="/api/v1", tags=["Audit Logs"])
 # --- Prometheus メトリクス（内部監視用 /metrics エンドポイント）---
 # ISO27001 A.8.16: セキュリティ監視 / NIST CSF DE.CM-01: 継続的モニタリング
 Instrumentator().instrument(app).expose(app, include_in_schema=False, tags=["System"])
+
+# --- OpenTelemetry FastAPI 自動計装（/health・/metrics は除外）---
+# 各リクエストに trace_id / span_id を自動付与し OTLP エクスポーター経由で送信
+FastAPIInstrumentor.instrument_app(
+    app,
+    excluded_urls="/health,/api/v1/health,/metrics",
+)
 
 
 # --- ヘルスチェック ---
