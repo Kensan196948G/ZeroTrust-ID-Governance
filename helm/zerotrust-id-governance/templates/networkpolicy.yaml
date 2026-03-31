@@ -1,0 +1,370 @@
+# =============================================
+# NetworkPolicy（Zero Trust ネットワーク）
+# networkPolicy.enabled=true の場合のみ作成。
+# デフォルト Deny + 明示的許可ルールで
+# Pod 間通信を最小権限に制限する。
+# CNI プラグイン（Calico/Cilium 等）が必要。
+# =============================================
+{{- if .Values.networkPolicy.enabled }}
+---
+# デフォルト Deny: 全 Pod の Ingress/Egress を拒否
+# 以降の NetworkPolicy で明示的に許可する
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-default-deny
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# DNS 許可: 全 Pod が kube-dns（UDP/TCP 53）を使用できる
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-allow-dns
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+# Backend → PostgreSQL（5432）許可
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-backend-to-postgres
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+      ports:
+        - port: 5432
+          protocol: TCP
+---
+# Backend → Redis（6379）許可
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-backend-to-redis
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - port: 6379
+          protocol: TCP
+---
+# Frontend → Backend（8000）許可
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-frontend-to-backend
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: backend
+      ports:
+        - port: 8000
+          protocol: TCP
+---
+# Backend への Ingress 許可: Frontend + Ingress Controller + Prometheus
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-backend-ingress
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # Frontend からのリクエスト
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: frontend
+      ports:
+        - port: 8000
+          protocol: TCP
+    # Ingress Controller からのリクエスト（Namespace ラベルで識別）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 8000
+          protocol: TCP
+    # Prometheus スクレイプ（/metrics エンドポイント）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 8000
+          protocol: TCP
+---
+# Frontend への Ingress 許可: Ingress Controller のみ
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-frontend-ingress
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+# PostgreSQL への Ingress 許可: Backend のみ
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-postgres-ingress
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: backend
+      ports:
+        - port: 5432
+          protocol: TCP
+---
+# Redis への Ingress 許可: Backend のみ
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-redis-ingress
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: backend
+      ports:
+        - port: 6379
+          protocol: TCP
+{{- if .Values.logging.enabled }}
+---
+# Fluent Bit → Loki（3100）許可
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-fluentbit-to-loki
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: fluentbit
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: loki
+      ports:
+        - port: {{ .Values.logging.loki.service.port }}
+          protocol: TCP
+---
+# Loki への Ingress 許可: Fluent Bit + Grafana
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-loki-ingress
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: loki
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: fluentbit
+      ports:
+        - port: {{ .Values.logging.loki.service.port }}
+          protocol: TCP
+    {{- if .Values.grafana.enabled }}
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: grafana
+      ports:
+        - port: {{ .Values.logging.loki.service.port }}
+          protocol: TCP
+    {{- end }}
+{{- end }}
+{{- if .Values.alerting.enabled }}
+---
+# Alertmanager への Ingress 許可: Prometheus
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-alertmanager-ingress
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: alertmanager
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: {{ .Values.alerting.alertmanager.service.port }}
+          protocol: TCP
+  # Alertmanager → Slack/Teams（HTTPS 443）許可
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+{{- end }}
+{{- if .Values.tracing.jaeger.enabled }}
+---
+# Backend → Jaeger OTLP gRPC（4317）許可
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-backend-to-jaeger
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "zerotrust.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: jaeger
+      ports:
+        - port: {{ .Values.tracing.jaeger.service.collectorPort }}
+          protocol: TCP
+{{- end }}
+{{- end }}

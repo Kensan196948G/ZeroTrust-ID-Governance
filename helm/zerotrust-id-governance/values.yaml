@@ -290,3 +290,10 @@ alerting:
       webhookSecretRef:
         name: zerotrust-secrets
         key: TEAMS_WEBHOOK_URL
+
+# --- NetworkPolicy（Zero Trust ネットワーク）---
+# enabled: false → NetworkPolicy 未作成（開発・CI用・CNI不要）
+# enabled: true  → デフォルト Deny + 明示的許可ルールで最小権限通信（本番用）
+# CNI プラグイン（Calico/Cilium 等）がクラスタに必要
+networkPolicy:
+  enabled: false
