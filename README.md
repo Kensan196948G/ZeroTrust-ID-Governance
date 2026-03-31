@@ -71,6 +71,7 @@
 | **Phase 31** | Grafana Dashboardダッシュボード | ✅ 完了 | Grafana Helm・Prometheusデータソース自動プロビジョニング・HTTP REDメトリクス (#54) |
 | **Phase 32** | Loki + Fluent Bit ログ収集 | ✅ 完了 | Loki 3.4.2 StatefulSet・Fluent Bit 3.3.6 DaemonSet・Grafana Logs datasource統合 (#55) |
 | **Phase 33** | Alertmanager アラート通知 | ✅ 完了 | Alertmanager v0.27.0・Prometheus Alert Rules 5件・Slack/Teams通知・inhibit_rules (#56) |
+| **Phase 34** | NetworkPolicy Zero Trust | ✅ 完了 | デフォルトDeny + 明示的許可・DNS/Backend/Frontend/DB/Observability 全通信制御 (#57) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -609,6 +610,7 @@ MIT License - [LICENSE](LICENSE)
 | 可視化ダッシュボード | **Grafana 11.5.2**（Prometheusデータソース自動プロビジョニング・HTTP REDダッシュボード・Jaegerトレース統合） | Phase 31 ✅ |
 | ログ収集基盤 | **Loki 3.4.2 + Fluent Bit 3.3.6**（DaemonSet全ノード収集・kubernetes filterラベル付与・Grafana Logs datasource統合） | Phase 32 ✅ |
 | アラート通知基盤 | **Alertmanager v0.27.0**（Prometheus Alert Rules 5件・Slack/Teams通知・inhibit_rules・alerting.enabled制御） | Phase 33 ✅ |
+| Zero Trust ネットワーク | **NetworkPolicy**（デフォルトDeny + 明示的許可・Backend/Frontend/DB/Loki/Alertmanager/Jaeger 通信制御・networkPolicy.enabled制御） | Phase 34 ✅ |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -617,4 +619,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜33 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・Helm chart + CI 8ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 4本柱 + Alertmanager アラート通知・ESO Azure Key Vault Secrets管理*
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜34 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・Helm chart + CI 8ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 4本柱 + Alertmanager アラート通知 + NetworkPolicy Zero Trust ネットワーク・ESO Azure Key Vault Secrets管理*
