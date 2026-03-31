@@ -1,0 +1,233 @@
+# =============================================
+# Alertmanager アラート通知（本番用）
+# alerting.enabled=true の場合のみ作成。
+# Prometheus から受け取ったアラートを
+# Slack / Microsoft Teams へ通知する。
+# =============================================
+{{- if .Values.alerting.enabled }}
+---
+# Alertmanager 設定 ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-alertmanager-config
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+
+    route:
+      group_by: ['alertname', 'namespace', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'default'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical'
+          continue: true
+        - match:
+            severity: warning
+          receiver: 'default'
+
+    receivers:
+      - name: 'default'
+        {{- if .Values.alerting.alertmanager.slack.enabled }}
+        slack_configs:
+          - channel: {{ .Values.alerting.alertmanager.slack.channel | quote }}
+            send_resolved: true
+            title: '[{{ "{{" }} .Status | toUpper {{ "}}" }}{{ "{{" }} if eq .Status "firing" {{ "}}" }}:{{ "{{" }} .Alerts.Firing | len {{ "}}" }}{{ "{{" }} end {{ "}}" }}] ZeroTrust Alert'
+            text: >-
+              {{ "{{" }} range .Alerts {{ "}}" }}
+              *Alert:* {{ "{{" }} .Annotations.summary {{ "}}" }}
+              *Description:* {{ "{{" }} .Annotations.description {{ "}}" }}
+              *Severity:* {{ "{{" }} .Labels.severity {{ "}}" }}
+              *Namespace:* {{ "{{" }} .Labels.namespace {{ "}}" }}
+              {{ "{{" }} end {{ "}}" }}
+        {{- end }}
+
+      - name: 'critical'
+        {{- if .Values.alerting.alertmanager.slack.enabled }}
+        slack_configs:
+          - channel: {{ .Values.alerting.alertmanager.slack.channel | quote }}
+            send_resolved: true
+            title: '🚨 [CRITICAL] ZeroTrust Alert'
+            text: >-
+              {{ "{{" }} range .Alerts {{ "}}" }}
+              *Alert:* {{ "{{" }} .Annotations.summary {{ "}}" }}
+              *Description:* {{ "{{" }} .Annotations.description {{ "}}" }}
+              {{ "{{" }} end {{ "}}" }}
+        {{- end }}
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'namespace']
+
+  # Prometheus Alert Rules（HTTP RED + セキュリティ）
+  zerotrust-rules.yml: |
+    groups:
+      - name: zerotrust.http
+        interval: 30s
+        rules:
+          - alert: HighErrorRate
+            expr: |
+              rate(http_requests_total{job="zerotrust-backend", status=~"5.."}[5m])
+              / rate(http_requests_total{job="zerotrust-backend"}[5m]) * 100 > 5
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High HTTP error rate on ZeroTrust backend"
+              description: "Error rate is {{ "{{" }} $value | humanize {{ "}}" }}% (threshold: 5%)"
+
+          - alert: CriticalErrorRate
+            expr: |
+              rate(http_requests_total{job="zerotrust-backend", status=~"5.."}[5m])
+              / rate(http_requests_total{job="zerotrust-backend"}[5m]) * 100 > 20
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Critical HTTP error rate on ZeroTrust backend"
+              description: "Error rate is {{ "{{" }} $value | humanize {{ "}}" }}% (threshold: 20%)"
+
+          - alert: HighLatencyP99
+            expr: |
+              histogram_quantile(0.99,
+                rate(http_request_duration_seconds_bucket{job="zerotrust-backend"}[5m])
+              ) > 2
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High P99 latency on ZeroTrust backend"
+              description: "P99 latency is {{ "{{" }} $value | humanizeDuration {{ "}}" }} (threshold: 2s)"
+
+      - name: zerotrust.availability
+        interval: 60s
+        rules:
+          - alert: BackendDown
+            expr: up{job="zerotrust-backend"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "ZeroTrust backend is down"
+              description: "Backend pod {{ "{{" }} $labels.instance {{ "}}" }} has been down for more than 1 minute"
+
+          - alert: HighActiveRequests
+            expr: http_requests_in_progress{job="zerotrust-backend"} > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High number of active requests"
+              description: "{{ "{{" }} $value {{ "}}" }} requests are in-flight (threshold: 100)"
+---
+# Alertmanager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-alertmanager
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: alertmanager
+  template:
+    metadata:
+      labels:
+        {{- include "zerotrust.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: alertmanager
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/alertmanager.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: alertmanager
+          image: "{{ .Values.alerting.alertmanager.image.repository }}:{{ .Values.alerting.alertmanager.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
+            - --web.listen-address=:9093
+            - --log.level=info
+          ports:
+            - name: http
+              containerPort: 9093
+              protocol: TCP
+          env:
+            {{- if .Values.alerting.alertmanager.slack.enabled }}
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.alerting.alertmanager.slack.webhookSecretRef.name }}
+                  key: {{ .Values.alerting.alertmanager.slack.webhookSecretRef.key }}
+            {{- end }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.alerting.alertmanager.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+              readOnly: true
+            - name: storage
+              mountPath: /alertmanager
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "zerotrust.fullname" . }}-alertmanager-config
+        - name: storage
+          emptyDir: {}
+---
+# Alertmanager Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-alertmanager
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "zerotrust.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+  ports:
+    - name: http
+      port: {{ .Values.alerting.alertmanager.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}
