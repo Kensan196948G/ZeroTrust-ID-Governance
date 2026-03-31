@@ -40,6 +40,8 @@
   Alertmanager:        {{ if .Values.alerting.enabled }}✅ 有効（Slack/Teams通知）{{ else }}❌ 無効{{ end }}
   NetworkPolicy:       {{ if .Values.networkPolicy.enabled }}✅ 有効（Zero Trust Deny All）{{ else }}❌ 無効{{ end }}
   Distributed Tracing: {{ if .Values.tracing.enabled }}✅ OTEL + Jaeger 有効{{ else }}❌ 無効{{ end }}
+  ResourceQuota:       {{ if .Values.resourceQuota.enabled }}✅ 有効（Namespace リソース上限）{{ else }}❌ 無効{{ end }}
+  LimitRange:          {{ if .Values.limitRange.enabled }}✅ 有効（コンテナデフォルトリソース）{{ else }}❌ 無効{{ end }}
 
 🔑 Secrets 管理:
 

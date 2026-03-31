@@ -1,0 +1,63 @@
+# =============================================
+# ResourceQuota + LimitRange（本番リソース管理）
+# resourceQuota.enabled=true の場合のみ作成。
+# Namespace レベルのリソース上限でノイジーネイバー問題を防止し
+# DoS 攻撃からクラスタを保護する。
+# =============================================
+{{- if .Values.resourceQuota.enabled }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-quota
+  namespace: {{ include "zerotrust.namespace" . | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: resource-management
+spec:
+  hard:
+    pods: {{ .Values.resourceQuota.hard.pods | quote }}
+    requests.cpu: {{ index .Values.resourceQuota.hard "requests.cpu" | quote }}
+    limits.cpu: {{ index .Values.resourceQuota.hard "limits.cpu" | quote }}
+    requests.memory: {{ index .Values.resourceQuota.hard "requests.memory" | quote }}
+    limits.memory: {{ index .Values.resourceQuota.hard "limits.memory" | quote }}
+    services: {{ .Values.resourceQuota.hard.services | quote }}
+    persistentvolumeclaims: {{ .Values.resourceQuota.hard.persistentvolumeclaims | quote }}
+    configmaps: {{ .Values.resourceQuota.hard.configmaps | quote }}
+    secrets: {{ .Values.resourceQuota.hard.secrets | quote }}
+{{- end }}
+{{- if .Values.limitRange.enabled }}
+---
+# =============================================
+# LimitRange（コンテナデフォルトリソース）
+# requests 未設定のコンテナが際限なくリソースを消費することを防ぐ。
+# max/min 制限で単一コンテナの暴走も防止する。
+# =============================================
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-limits
+  namespace: {{ include "zerotrust.namespace" . | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: resource-management
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: {{ .Values.limitRange.container.default.cpu | quote }}
+        memory: {{ .Values.limitRange.container.default.memory | quote }}
+      defaultRequest:
+        cpu: {{ .Values.limitRange.container.defaultRequest.cpu | quote }}
+        memory: {{ .Values.limitRange.container.defaultRequest.memory | quote }}
+      max:
+        cpu: {{ .Values.limitRange.container.max.cpu | quote }}
+        memory: {{ .Values.limitRange.container.max.memory | quote }}
+      min:
+        cpu: {{ .Values.limitRange.container.min.cpu | quote }}
+        memory: {{ .Values.limitRange.container.min.memory | quote }}
+    - type: Pod
+      max:
+        cpu: {{ .Values.limitRange.pod.max.cpu | quote }}
+        memory: {{ .Values.limitRange.pod.max.memory | quote }}
+{{- end }}
