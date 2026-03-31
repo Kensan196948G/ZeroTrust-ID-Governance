@@ -235,6 +235,24 @@ describe('AuditPage', () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it('未分類アクション（line 19：gray fallback）が正しく表示される', () => {
+    const logsWithUnknownAction = [
+      { ...mockLogs[0], id: 99, action: 'EXPORT_AUDIT_LOG' },
+    ];
+    setupSWR(logsWithUnknownAction, false);
+    render(<AuditPage />);
+    expect(screen.getByText('EXPORT_AUDIT_LOG')).toBeInTheDocument();
+  });
+
+  it('未知の result 値（line 25：gray fallback）が正しく表示される', () => {
+    const logsWithUnknownResult = [
+      { ...mockLogs[0], id: 100, result: 'partial' },
+    ];
+    setupSWR(logsWithUnknownResult, false);
+    render(<AuditPage />);
+    expect(screen.getByText('partial')).toBeInTheDocument();
+  });
+
   it('検索結果が0件のとき「ログがありません」が表示される（lines 134-138）', async () => {
     const user = userEvent.setup();
     setupSWR(mockLogs, false);
