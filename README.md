@@ -76,7 +76,8 @@
 | **Phase 36** | PodDisruptionBudget + HPA強化 | ✅ 完了 | frontend HPA追加・メモリメトリクス・PDB（policy/v1）・selectorLabels分離・ゼロダウンタイム保証 (#59) |
 | **Phase 37a** | HPA Behavior設定追加 | ✅ 完了 | scaleDown stabilization 300s・25%/60s制限・scaleUp 100%/30s・本番スパイク保護 (#60) |
 | **Phase 37b** | namespaceOverride対応 | ✅ 完了 | マルチテナント Helm chart 基盤・global.namespaceOverride・全テンプレート統一 (#61) |
-| **Phase 38** | GitOps ArgoCD/Flux CD | ✅ 完了 | ArgoCD Application CRD・Flux HelmRelease・gitops/ ディレクトリ・GitOps フロー確立 |
+| **Phase 38** | GitOps ArgoCD/Flux CD | ✅ 完了 | ArgoCD Application CRD・Flux HelmRelease・gitops/ ディレクトリ・GitOps フロー確立 (#62) |
+| **Phase 39** | Helm OCI Registry publish | 🔄 進行中 | CI helm-publish job・ghcr.io 自動公開・GITHUB_TOKEN 認証・STABLE gate 連動 (#63) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
