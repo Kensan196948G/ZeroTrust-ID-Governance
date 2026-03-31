@@ -61,10 +61,26 @@ app.kubernetes.io/component: backend
 {{- end }}
 
 {{/*
+バックエンド専用セレクターラベル（PDB/NetworkPolicy用）
+*/}}
+{{- define "zerotrust.backend.selectorLabels" -}}
+{{ include "zerotrust.selectorLabels" . }}
+app.kubernetes.io/component: backend
+{{- end }}
+
+{{/*
 フロントエンド専用ラベル
 */}}
 {{- define "zerotrust.frontend.labels" -}}
 {{ include "zerotrust.labels" . }}
+app.kubernetes.io/component: frontend
+{{- end }}
+
+{{/*
+フロントエンド専用セレクターラベル（PDB/NetworkPolicy用）
+*/}}
+{{- define "zerotrust.frontend.selectorLabels" -}}
+{{ include "zerotrust.selectorLabels" . }}
 app.kubernetes.io/component: frontend
 {{- end }}
 

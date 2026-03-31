@@ -26,6 +26,11 @@ backend:
     minReplicas: 2
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  # PodDisruptionBudget（ゼロダウンタイム更新・ノードドレイン保護）
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
   env:
     APP_ENV: production
     ALLOWED_ORIGINS: '["https://your-domain.example.com"]'
@@ -48,6 +53,16 @@ frontend:
     limits:
       cpu: "250m"
       memory: "256Mi"
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  # PodDisruptionBudget（ゼロダウンタイム更新・ノードドレイン保護）
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
   service:
     type: ClusterIP
     port: 3000
