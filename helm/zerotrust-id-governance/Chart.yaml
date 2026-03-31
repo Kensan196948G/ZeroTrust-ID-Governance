@@ -1,8 +1,13 @@
 apiVersion: v2
 name: zerotrust-id-governance
-description: ZeroTrust ID Governance - Identity & Access Management Platform
+description: |
+  ZeroTrust ID Governance - Identity & Access Management Platform.
+  Zero Trust アーキテクチャに基づく IAM プラットフォーム。
+  認証（JWT RS256）・認可（RBAC）・ネットワーク（NetworkPolicy）の三層セキュリティ。
+  Observability: Prometheus + OTEL + Grafana + Loki + Alertmanager の完全スタック。
+  Secrets 管理: ESO + Azure Key Vault Workload Identity 統合。
 type: application
-version: 0.1.0
+version: 1.0.0
 appVersion: "1.0.0"
 keywords:
   - zerotrust
@@ -10,7 +15,23 @@ keywords:
   - identity-governance
   - fastapi
   - nextjs
+  - kubernetes
+  - security
+  - observability
 maintainers:
   - name: ZeroTrust-ID-Governance Team
+    url: https://github.com/Kensan196948G/ZeroTrust-ID-Governance
 sources:
-  - https://github.com/kensan914/ZeroTrust-ID-Governance
+  - https://github.com/Kensan196948G/ZeroTrust-ID-Governance
+annotations:
+  artifacthub.io/changes: |
+    - kind: added
+      description: "Phase 33: Alertmanager v0.27.0 + Prometheus Alert Rules 5件 + Slack/Teams通知"
+    - kind: added
+      description: "Phase 34: NetworkPolicy Zero Trust（デフォルトDeny + 明示的許可・Pod間通信最小権限）"
+    - kind: added
+      description: "Phase 32: Loki 3.4.2 StatefulSet + Fluent Bit 3.3.6 DaemonSet（Observability完全体）"
+    - kind: security
+      description: "ESO ExternalSecret + Azure Key Vault Workload Identity統合"
+    - kind: changed
+      description: "Chart version 0.1.0 → 1.0.0（API安定化・34フェーズ機能完成）"
