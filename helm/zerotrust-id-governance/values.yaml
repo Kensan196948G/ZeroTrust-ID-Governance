@@ -1,0 +1,140 @@
+# =============================================
+# ZeroTrust ID Governance - Helm Values
+# =============================================
+# このファイルのデフォルト値は本番安全設定です。
+# 機密値は Secret で管理し、ここには含めないこと。
+
+# --- バックエンド (FastAPI) ---
+backend:
+  image:
+    repository: ghcr.io/kensan914/zerotrust-id-governance-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  service:
+    type: ClusterIP
+    port: 8000
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  env:
+    APP_ENV: production
+    ALLOWED_ORIGINS: '["https://your-domain.example.com"]'
+    ALLOWED_HOSTS: '["your-domain.example.com"]'
+  # 機密値は Secret 参照（値はここに書かない）
+  secretRef:
+    name: zerotrust-secrets
+
+# --- フロントエンド (Next.js) ---
+frontend:
+  image:
+    repository: ghcr.io/kensan914/zerotrust-id-governance-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+  service:
+    type: ClusterIP
+    port: 3000
+  env:
+    NEXT_PUBLIC_API_URL: "https://api.your-domain.example.com"
+    NEXT_PUBLIC_APP_NAME: "ZeroTrust ID Governance"
+
+# --- Ingress ---
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: your-domain.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+        - path: /api
+          pathType: Prefix
+          service: backend
+  tls:
+    - secretName: zerotrust-tls
+      hosts:
+        - your-domain.example.com
+
+# --- PostgreSQL（本番では外部マネージドDB推奨）---
+postgresql:
+  enabled: true
+  auth:
+    database: zerotrust_id
+    username: admin
+    existingSecret: zerotrust-secrets
+    secretKeys:
+      adminPasswordKey: POSTGRES_PASSWORD
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+
+# --- Redis ---
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+
+# --- グローバル設定 ---
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# --- Pod セキュリティ設定（全 Pod 共通）---
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# --- Service Account ---
+serviceAccount:
+  create: true
+  name: zerotrust-sa
+  annotations: {}

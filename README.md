@@ -64,6 +64,7 @@
 | **Phase 25** | カバレッジ完全制覇 | ✅ 完了 | dashboard/workflows 残存行カバー・98.87%→99.51% Stmts・164テスト |
 | **Phase 26a** | AuditPage カバレッジ 100% | ✅ 完了 | actionColor/resultBadge fallback カバー・99.51%→99.83%・166テスト |
 | **Phase 26b** | フロントエンド Stmts 100% 達成 | ✅ 完了 | AccessRequests reject 成功パス・SystemStatusGrid fetcher カバー・**Stmts 100%**・168テスト |
+| **Phase 27** | 本番デプロイ準備 | ✅ 完了 | Backend Dockerfileマルチステージ最適化・Helm chart作成・CI helm lint追加（8ジョブ） |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -592,9 +593,10 @@ MIT License - [LICENSE](LICENSE)
 | フロントエンド単体テスト | **168件 PASS** | Phase 26b |
 | フロントエンドカバレッジ | **100% Stmts / 94.44% Branch** | Phase 26b |
 | E2E テスト | Playwright + Newman | Phase 15 |
-| CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 21 |
-| GitHub Actions | **Node.js 24 完全移行**（checkout@v5・setup-node@v6） | Phase 24b |
+| CI 成功率 | **100%**（連続 N=5 STABLE） | Phase 27 |
+| GitHub Actions | **8ジョブ**（helm-lint 追加・Node.js 24 完全移行） | Phase 27 |
 | 供給チェーン対策 | trivy-action@0.35.0（@master 禁止・2026/03攻撃対策） | Phase 24b |
+| Kubernetes/Helm | **Helm chart 作成**（Backend/Frontend/Ingress/HPA・本番 SecurityContext 対応） | Phase 27 |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -603,4 +605,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜26b 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成*
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜27 完了・STABLE N=5 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・Helm chart + CI 8ジョブ対応*

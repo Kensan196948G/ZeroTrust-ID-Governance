@@ -335,11 +335,40 @@ jobs:
             frontend/playwright-report/
 
   # ===================================
+  # Helm chart 検証
+  # ===================================
+  helm-lint:
+    name: ⎈ Helm Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v5
+
+      - name: ⎈ Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "3.16.0"
+
+      - name: 🔍 Helm lint
+        run: |
+          helm lint helm/zerotrust-id-governance \
+            --set backend.image.tag=test \
+            --set frontend.image.tag=test
+
+      - name: 📋 Helm template (dry-run)
+        run: |
+          helm template zerotrust helm/zerotrust-id-governance \
+            --set backend.image.tag=test \
+            --set frontend.image.tag=test \
+            --debug > /dev/null
+
+  # ===================================
   # CI 結果判定（STABLE 評価用）
   # ===================================
   ci-gate:
     name: "\u2705 CI Gate (STABLE\u5224\u5b9a)"
-    needs: [backend-ci, frontend-ci, frontend-unit, security-scan, api-e2e, frontend-e2e]
+    needs: [backend-ci, frontend-ci, frontend-unit, security-scan, api-e2e, frontend-e2e, helm-lint]
     runs-on: ubuntu-latest
     if: always()
 
@@ -352,6 +381,7 @@ jobs:
           SECURITY_RESULT: ${{ needs.security-scan.result }}
           API_E2E_RESULT: ${{ needs.api-e2e.result }}
           FRONTEND_E2E_RESULT: ${{ needs.frontend-e2e.result }}
+          HELM_RESULT: ${{ needs.helm-lint.result }}
         run: |
           echo "Backend CI:      $BACKEND_RESULT"
           echo "Frontend CI:     $FRONTEND_RESULT"
@@ -359,12 +389,14 @@ jobs:
           echo "Security:        $SECURITY_RESULT"
           echo "API E2E:         $API_E2E_RESULT"
           echo "Frontend E2E:    $FRONTEND_E2E_RESULT"
+          echo "Helm Lint:       $HELM_RESULT"
 
           if [[ "$BACKEND_RESULT" == "success" && \
                 "$FRONTEND_RESULT" == "success" && \
                 "$FRONTEND_UNIT_RESULT" == "success" && \
                 "$API_E2E_RESULT" == "success" && \
-                "$FRONTEND_E2E_RESULT" == "success" ]]; then
+                "$FRONTEND_E2E_RESULT" == "success" && \
+                "$HELM_RESULT" == "success" ]]; then
             echo "CI PASSED - STABLE (E2E all passed)"
             exit 0
           else

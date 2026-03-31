@@ -1,0 +1,16 @@
+apiVersion: v2
+name: zerotrust-id-governance
+description: ZeroTrust ID Governance - Identity & Access Management Platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - zerotrust
+  - iam
+  - identity-governance
+  - fastapi
+  - nextjs
+maintainers:
+  - name: ZeroTrust-ID-Governance Team
+sources:
+  - https://github.com/kensan914/ZeroTrust-ID-Governance
