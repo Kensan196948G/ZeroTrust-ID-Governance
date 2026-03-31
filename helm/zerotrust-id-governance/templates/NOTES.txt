@@ -56,6 +56,15 @@
       Azure Key Vault から自動同期してください。
   {{- end }}
 
+🚀 本番デプロイ:
+
+  本番推奨設定（values-prod.yaml）を使用してください:
+  helm upgrade --install zerotrust-id-governance . \
+    -f values.yaml \
+    -f values-prod.yaml \
+    --namespace zerotrust-prod \
+    --create-namespace
+
 📚 ドキュメント:
   GitHub: https://github.com/Kensan196948G/ZeroTrust-ID-Governance
   API Docs: https://{{ (first .Values.ingress.hosts).host }}/api/docs (Ingress有効時)

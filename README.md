@@ -80,6 +80,7 @@
 | **Phase 39** | Helm OCI Registry publish | ✅ 完了 | CI helm-publish job・ghcr.io/kensan196948g/charts v1.0.0・STABLE gate 連動・lowercase修正 (#63, #64) |
 | **Phase 40** | ResourceQuota + LimitRange | ✅ 完了 | Namespace リソース上限・コンテナデフォルトリソース・DoS対策・Helm chart v1.1.0 (#65) |
 | **Phase 42** | SLO/SLI ダッシュボード | ✅ 完了 | Grafana SLO panels・Error Budget追跡・Multi-Window Burn Rate PrometheusRule・Helm chart v1.2.0 (#66) |
+| **Phase 43** | 本番推奨設定ファイル | 🔄 PR中 | values-prod.yaml・セキュリティ全有効化・本番リソース設定・Helm chart v1.3.0 |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -628,6 +629,7 @@ MIT License - [LICENSE](LICENSE)
 | Helm OCI配布 | **ghcr.io/kensan196948g/charts v1.0.0**（CI helm-publish・STABLE gate連動・OCI lowercase対応） | Phase 39 ✅ |
 | リソース管理 | **ResourceQuota + LimitRange**（Namespace上限・コンテナデフォルト・DoS対策・ノイジーネイバー防止） | Phase 40 ✅ |
 | SLO/SLI監視 | **Grafana SLO ダッシュボード + PrometheusRule**（Availability 99.9%・Error Budget追跡・Multi-Window Burn Rate） | Phase 42 ✅ |
+| 本番設定 | **values-prod.yaml**（セキュリティ全有効化・本番リソース設定・Azure Key Vault必須・NetworkPolicy/SLO/ResourceQuota有効） | Phase 43 🔄 |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -636,4 +638,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜42 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・**Helm chart v1.2.0**（SLO/SLI ダッシュボード追加）・CI 9ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 5本柱 + Alertmanager アラート通知 + NetworkPolicy Zero Trust ネットワーク・ESO Azure Key Vault Secrets管理・**PodDisruptionBudget + HPA behavior + GitOps ArgoCD/Flux + Helm OCI ghcr.io publish + ResourceQuota/LimitRange 本番リソース管理 + SLO/SLI Multi-Window Burn Rate 監視***
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜43 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・**Helm chart v1.3.0**（values-prod.yaml 本番推奨設定追加）・CI 9ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 5本柱 + Alertmanager アラート通知 + NetworkPolicy Zero Trust ネットワーク・ESO Azure Key Vault Secrets管理・**PodDisruptionBudget + HPA behavior + GitOps ArgoCD/Flux + Helm OCI ghcr.io publish + ResourceQuota/LimitRange 本番リソース管理 + SLO/SLI Multi-Window Burn Rate 監視 + 本番推奨設定ファイル***
