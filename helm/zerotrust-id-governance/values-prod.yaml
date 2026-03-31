@@ -1,0 +1,188 @@
+# =============================================
+# ZeroTrust ID Governance - 本番環境推奨設定
+# =============================================
+# 使用方法:
+#   helm install zerotrust-id-governance . \
+#     -f values.yaml \
+#     -f values-prod.yaml \
+#     --namespace zerotrust-prod
+#
+# このファイルは values.yaml のオーバーライドです。
+# REPLACE_ プレフィックスの値を必ず環境固有の値に置換してください。
+# 機密値（パスワード・トークン・証明書）は直接記述せず、
+# externalSecrets.enabled=true で Azure Key Vault から自動同期してください。
+# =============================================
+
+# --- バックエンド (FastAPI) 本番設定 ---
+backend:
+  image:
+    tag: "REPLACE_WITH_RELEASE_TAG"  # 例: "v1.2.3"（latest は本番NG）
+    pullPolicy: Always
+  replicaCount: 3  # 本番: 最小3レプリカで高可用性確保
+  autoscaling:
+    enabled: true  # 本番: HPA 有効化
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    APP_ENV: production
+    ALLOWED_ORIGINS: '["https://REPLACE_WITH_YOUR_DOMAIN"]'
+    ALLOWED_HOSTS: '["REPLACE_WITH_YOUR_DOMAIN"]'
+
+# --- フロントエンド (Next.js) 本番設定 ---
+frontend:
+  image:
+    tag: "REPLACE_WITH_RELEASE_TAG"  # 例: "v1.2.3"
+    pullPolicy: Always
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    NEXT_PUBLIC_API_URL: "https://REPLACE_WITH_YOUR_DOMAIN/api"
+    NEXT_PUBLIC_APP_NAME: "ZeroTrust ID Governance"
+
+# --- Ingress 本番設定 ---
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # 本番: cert-manager による TLS 自動発行（Let's Encrypt）
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # 本番: レート制限（DDoS対策）
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+  hosts:
+    - host: REPLACE_WITH_YOUR_DOMAIN
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+        - path: /api
+          pathType: Prefix
+          service: backend
+  tls:
+    - secretName: zerotrust-tls
+      hosts:
+        - REPLACE_WITH_YOUR_DOMAIN
+
+# --- Secrets 管理: Azure Key Vault 本番必須 ---
+# 本番環境では必ず externalSecrets.enabled=true を設定すること。
+# enabled=false の場合、REPLACE_ プレースホルダーが Kubernetes Secret に入り
+# アプリケーションが起動しません。
+externalSecrets:
+  enabled: true  # 本番: 必須
+  azureKeyVault:
+    vaultUrl: "https://REPLACE_WITH_KEYVAULT_NAME.vault.azure.net/"
+    tenantId: "REPLACE_WITH_AZURE_TENANT_ID"
+  auth:
+    type: workloadIdentity
+    serviceAccountRef:
+      name: zerotrust-sa
+  refreshInterval: "15m"  # 本番: 短縮して鍵ローテーションに即応
+
+# --- Observability 本番設定 ---
+grafana:
+  enabled: true  # 本番: Grafana 有効化
+  adminUser: admin
+  prometheusUrl: "http://prometheus-server:9090"
+
+# ログ収集: 本番では必須
+logging:
+  enabled: true  # 本番: Loki + Fluent Bit 有効化
+  loki:
+    persistence:
+      enabled: true  # 本番: ログ永続化
+      size: 50Gi     # 本番: 十分なストレージ確保
+
+# 分散トレーシング: 本番では有効化推奨
+tracing:
+  enabled: true  # 本番: OpenTelemetry + Jaeger 有効化
+
+# アラート通知: 本番では必須
+alerting:
+  enabled: true  # 本番: Alertmanager 有効化
+  alertmanager:
+    slack:
+      enabled: true  # 本番: Slack 通知有効化
+      channel: "#zerotrust-alerts-prod"
+
+# --- Zero Trust ネットワーク: 本番必須 ---
+# CNI プラグイン（Calico/Cilium）がクラスタに必要
+networkPolicy:
+  enabled: true  # 本番: Zero Trust Deny All + 明示的許可
+
+# --- リソース管理: 本番必須 ---
+resourceQuota:
+  enabled: true  # 本番: Namespace リソース上限（DoS対策・ノイジーネイバー防止）
+  hard:
+    pods: "100"
+    requests.cpu: "8"
+    limits.cpu: "16"
+    requests.memory: "8Gi"
+    limits.memory: "16Gi"
+    services: "30"
+    persistentvolumeclaims: "20"
+    configmaps: "50"
+    secrets: "50"
+
+limitRange:
+  enabled: true  # 本番: コンテナデフォルトリソース強制
+
+# --- SLO/SLI 監視: 本番推奨 ---
+slo:
+  enabled: true  # 本番: Grafana SLO ダッシュボード有効化
+  availability:
+    target: 0.999
+    targetPct: "99.9"
+    window: "30d"
+  latency:
+    thresholdSeconds: "0.5"
+    thresholdMs: "500"
+  # Prometheus Operator がクラスタに存在する場合のみ有効化
+  # kubectl get crd prometheusrules.monitoring.coreos.com で確認
+  prometheusRule:
+    enabled: true  # 本番: Multi-Window Burn Rate アラート有効化
+
+# --- Prometheus ServiceMonitor: Prometheus Operator 使用時 ---
+serviceMonitor:
+  enabled: true  # 本番: Prometheus Operator で自動スクレイプ
+  interval: 15s  # 本番: スクレイプ間隔を短縮
+
+# --- PostgreSQL 本番設定 ---
+# 本番環境では外部マネージドDB（Azure Database for PostgreSQL等）を強く推奨。
+# 以下は Helm 内蔵 PostgreSQL を使う場合の最小設定。
+postgresql:
+  enabled: true
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi  # 本番: 十分なストレージ
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "2"
+        memory: "2Gi"
+
+# --- Redis 本番設定 ---
+redis:
+  enabled: true
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
