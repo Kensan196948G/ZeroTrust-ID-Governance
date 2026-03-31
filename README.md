@@ -9,8 +9,8 @@
 [![ISO27001](https://img.shields.io/badge/ISO-27001-blue.svg)](docs/)
 [![Python](https://img.shields.io/badge/Python-3.12-green.svg)](backend/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.5.14-black.svg)](frontend/)
-[![Tests](https://img.shields.io/badge/Tests-331%20backend%20%2B%20148%20frontend-brightgreen.svg)](backend/tests/)
-[![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-98.87%25-brightgreen.svg)](frontend/)
+[![Tests](https://img.shields.io/badge/Tests-331%20backend%20%2B%20164%20frontend-brightgreen.svg)](backend/tests/)
+[![Frontend Coverage](https://img.shields.io/badge/Frontend%20Coverage-99.51%25-brightgreen.svg)](frontend/)
 [![E2E](https://img.shields.io/badge/E2E-Playwright%20%2B%20Newman-blueviolet.svg)](frontend/tests/)
 [![Docs](https://img.shields.io/badge/Docs-60%20files-informational.svg)](docs/)
 
@@ -61,6 +61,7 @@
 | **Phase 23** | App Router ストリーミング最適化 | ✅ 完了 | loading.tsx / error.tsx 追加・+13テスト・161件・98.87% (#49) |
 | **Phase 24** | Next.js セキュリティアップグレード | ✅ 完了 | 14.2.35→15.5.14・High×4件解消・本番脆弱性0件 (#50) |
 | **Phase 24b** | CI Actions Node.js 24 移行 | ✅ 完了 | checkout@v5/setup-node@v6/upload-artifact@v6・trivy供給チェーン攻撃対策 |
+| **Phase 25** | カバレッジ完全制覇 | ✅ 完了 | dashboard/workflows 残存行カバー・98.87%→99.51% Stmts・164テスト |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -586,8 +587,8 @@ MIT License - [LICENSE](LICENSE)
 |------|-----|-----------|
 | バックエンド単体テスト | **331件 PASS** | Phase 21b |
 | テストカバレッジ | **99.5%** | Phase 21b |
-| フロントエンド単体テスト | **161件 PASS** | Phase 23 |
-| フロントエンドカバレッジ | **98.87% Stmts / 92.78% Branch** | Phase 23 |
+| フロントエンド単体テスト | **164件 PASS** | Phase 25 |
+| フロントエンドカバレッジ | **99.51% Stmts / 93.47% Branch** | Phase 25 |
 | E2E テスト | Playwright + Newman | Phase 15 |
 | CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 21 |
 | GitHub Actions | **Node.js 24 完全移行**（checkout@v5・setup-node@v6） | Phase 24b |
@@ -600,4 +601,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜24b 完了・STABLE N=3 達成・本番脆弱性 0件・CI Node.js 24 完全移行*
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜25 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンドカバレッジ 99.51%*
