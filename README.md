@@ -74,6 +74,7 @@
 | **Phase 34** | NetworkPolicy Zero Trust | ✅ 完了 | デフォルトDeny + 明示的許可・DNS/Backend/Frontend/DB/Observability 全通信制御 (#57) |
 | **Phase 35** | Helm Chart v1.0.0 リリース準備 | ✅ 完了 | Chart.yaml v0.1.0→v1.0.0・NOTES.txt インストールガイド・GitHub Release 作成 (#58) |
 | **Phase 36** | PodDisruptionBudget + HPA強化 | ✅ 完了 | frontend HPA追加・メモリメトリクス・PDB（policy/v1）・selectorLabels分離・ゼロダウンタイム保証 (#59) |
+| **Phase 37a** | HPA Behavior設定追加 | ✅ 完了 | scaleDown stabilization 300s・25%/60s制限・scaleUp 100%/30s・本番スパイク保護 (#60) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -616,6 +617,7 @@ MIT License - [LICENSE](LICENSE)
 | Helm chart | **v1.0.0 正式リリース**（Chart.yaml v1.0.0・NOTES.txt インストールガイド・GitHub Release helm-chart-v1.0.0・artifacthub.io対応） | Phase 35 ✅ |
 | 高可用性（HA） | **PodDisruptionBudget**（backend/frontend minAvailable:1・ノードドレイン保護・ゼロダウンタイム） | Phase 36 ✅ |
 | オートスケール | **HPA デュアルメトリクス**（CPU+メモリ複合スケール・frontend HPA追加・autoscaling/v2） | Phase 36 ✅ |
+| HPA安定制御 | **HPA Behavior**（scaleDown 300s安定確認・25%/60s制限・scaleUp 100%/30s・スパイク保護） | Phase 37a ✅ |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -624,4 +626,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜36 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・**Helm chart v1.0.0 正式リリース**（GitHub Release helm-chart-v1.0.0）・CI 8ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 5本柱 + Alertmanager アラート通知 + NetworkPolicy Zero Trust ネットワーク・ESO Azure Key Vault Secrets管理・**PodDisruptionBudget + HPA デュアルメトリクスによるゼロダウンタイム高可用性達成***
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜37a 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・**Helm chart v1.0.0 正式リリース**（GitHub Release helm-chart-v1.0.0）・CI 8ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 5本柱 + Alertmanager アラート通知 + NetworkPolicy Zero Trust ネットワーク・ESO Azure Key Vault Secrets管理・**PodDisruptionBudget + HPA behavior（スケールダウン保護・デュアルメトリクス）によるゼロダウンタイム高可用性達成***
