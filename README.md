@@ -60,6 +60,7 @@
 | **Phase 22** | フロントエンドカバレッジ向上 | ✅ 完了 | 96.31%→98.79% Stmts・+8テスト・148件 (#48) |
 | **Phase 23** | App Router ストリーミング最適化 | ✅ 完了 | loading.tsx / error.tsx 追加・+13テスト・161件・98.87% (#49) |
 | **Phase 24** | Next.js セキュリティアップグレード | ✅ 完了 | 14.2.35→15.5.14・High×4件解消・本番脆弱性0件 (#50) |
+| **Phase 24b** | CI Actions Node.js 24 移行 | ✅ 完了 | checkout@v5/setup-node@v6/upload-artifact@v6・trivy供給チェーン攻撃対策 |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -589,6 +590,8 @@ MIT License - [LICENSE](LICENSE)
 | フロントエンドカバレッジ | **98.87% Stmts / 92.78% Branch** | Phase 23 |
 | E2E テスト | Playwright + Newman | Phase 15 |
 | CI 成功率 | **100%**（連続 N=3 STABLE） | Phase 21 |
+| GitHub Actions | **Node.js 24 完全移行**（checkout@v5・setup-node@v6） | Phase 24b |
+| 供給チェーン対策 | trivy-action@0.35.0（@master 禁止・2026/03攻撃対策） | Phase 24b |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -597,4 +600,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜15 完了・STABLE N=3 達成*
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜24b 完了・STABLE N=3 達成・本番脆弱性 0件・CI Node.js 24 完全移行*
