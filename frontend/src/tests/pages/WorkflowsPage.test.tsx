@@ -163,4 +163,44 @@ describe('WorkflowsPage', () => {
       expect(screen.getByText('ネットワークエラー')).toBeInTheDocument();
     });
   });
+
+  it('非 Error オブジェクト reject 時にフォールバックメッセージ表示（line 100）', async () => {
+    const user = userEvent.setup();
+    setupSWR({ status: 'ok' });
+
+    // string を reject することで `err instanceof Error` の else ブランチをカバー
+    vi.mocked(workflowsApi.quarterlyReview).mockRejectedValue('文字列エラー');
+
+    render(<WorkflowsPage />);
+
+    const executeButtons = screen.getAllByText('手動実行').map((el) => el.closest('button')!);
+    await user.click(executeButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('エラーが発生しました')).toBeInTheDocument();
+    });
+  });
+
+  it('実行中に再クリックしても二重実行されない（line 83 早期 return）', async () => {
+    const user = userEvent.setup();
+    setupSWR({ status: 'ok' });
+
+    // 解決しない Promise で実行中状態を維持
+    const neverResolve = new Promise<{ task_id: string; status: string }>(() => {});
+    vi.mocked(workflowsApi.quarterlyReview).mockReturnValue(neverResolve);
+
+    render(<WorkflowsPage />);
+
+    const executeButtons = screen.getAllByText('手動実行').map((el) => el.closest('button')!);
+    // 1回目クリック → 実行中状態になる
+    await user.click(executeButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('実行中...')).toBeInTheDocument();
+    });
+
+    // 2回目クリック → 早期 return（line 83）で API は1回しか呼ばれない
+    await user.click(executeButtons[0]);
+    expect(workflowsApi.quarterlyReview).toHaveBeenCalledTimes(1);
+  });
 });

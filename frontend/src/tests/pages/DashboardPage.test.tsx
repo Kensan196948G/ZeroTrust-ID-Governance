@@ -164,4 +164,22 @@ describe('DashboardPage', () => {
     // MFA rate = 0%
     expect(screen.getByText('0%')).toBeInTheDocument();
   });
+
+  it('json() 解析失敗時に catch ブロックのデフォルト値が返る（lines 41-48）', async () => {
+    // Promise.allSettled を使っているため fetch reject では catch に到達しない。
+    // json() が throw することで catch ブロックをカバーする。
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => { throw new Error('JSON parse error'); },
+      } as unknown as Response)
+    ) as typeof fetch;
+
+    await renderAsync(DashboardPage);
+
+    // catch ブロックのデフォルト値（0）が表示される
+    const statCards = screen.getAllByTestId('stat-card');
+    expect(statCards).toHaveLength(4);
+    expect(screen.getByText('0%')).toBeInTheDocument();
+  });
 });
