@@ -447,17 +447,20 @@ jobs:
         run: |
           CHART_VERSION=$(grep '^version:' helm/zerotrust-id-governance/Chart.yaml | awk '{print $2}')
           CHART_NAME=$(grep '^name:' helm/zerotrust-id-governance/Chart.yaml | awk '{print $2}')
-          REGISTRY="ghcr.io/${{ github.repository_owner }}/charts"
+          # OCI registry は小文字のみ有効 → repository_owner を小文字化
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REGISTRY="ghcr.io/${OWNER}/charts"
           echo "Publishing ${CHART_NAME} v${CHART_VERSION} to ${REGISTRY}"
           helm push "/tmp/helm-charts/${CHART_NAME}-${CHART_VERSION}.tgz" "oci://${REGISTRY}"
 
       - name: ✅ Publish summary
         run: |
           CHART_VERSION=$(grep '^version:' helm/zerotrust-id-governance/Chart.yaml | awk '{print $2}')
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "## ⎈ Helm Chart Published" >> "$GITHUB_STEP_SUMMARY"
           echo "| 項目 | 値 |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Chart | zerotrust-id-governance |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Version | ${CHART_VERSION} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Registry | oci://ghcr.io/${{ github.repository_owner }}/charts |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Registry | oci://ghcr.io/${OWNER}/charts |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Trigger | ${{ github.sha }} |" >> "$GITHUB_STEP_SUMMARY"
