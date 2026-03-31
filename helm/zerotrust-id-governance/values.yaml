@@ -256,3 +256,37 @@ tracing:
     service:
       queryPort: 16686
       collectorPort: 4317
+
+# --- アラート通知（Alertmanager）---
+# enabled: false → アラート通知無効（開発・CI用）
+# enabled: true  → Alertmanager で Slack/Teams 通知（本番用）
+alerting:
+  enabled: false
+  alertmanager:
+    image:
+      repository: prom/alertmanager
+      tag: "v0.27.0"
+    service:
+      port: 9093
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+    # Slack 通知設定（Secret 参照）
+    slack:
+      enabled: false
+      channel: "#zerotrust-alerts"
+      # Webhook URL は zerotrust-secrets から参照
+      webhookSecretRef:
+        name: zerotrust-secrets
+        key: SLACK_WEBHOOK_URL
+    # Microsoft Teams 通知設定
+    teams:
+      enabled: false
+      # Webhook URL は zerotrust-secrets から参照
+      webhookSecretRef:
+        name: zerotrust-secrets
+        key: TEAMS_WEBHOOK_URL
