@@ -100,6 +100,153 @@ data:
         }
       ]
     }
+  {{- if .Values.slo.enabled }}
+  zerotrust-slo.json: |
+    {
+      "title": "ZeroTrust ID Governance - SLO/SLI",
+      "uid": "zerotrust-slo",
+      "schemaVersion": 36,
+      "version": 1,
+      "tags": ["slo", "sli", "error-budget"],
+      "panels": [
+        {
+          "id": 10,
+          "title": "Availability SLO (target: {{ .Values.slo.availability.targetPct }}%)",
+          "type": "gauge",
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 8},
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0.99,
+              "max": 1,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"value": 0, "color": "red"},
+                  {"value": {{ .Values.slo.availability.target }}, "color": "green"}
+                ]
+              }
+            }
+          },
+          "targets": [{
+            "expr": "sum(rate(http_requests_total{job=\"zerotrust-backend\",status!~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"zerotrust-backend\"}[5m]))",
+            "legendFormat": "Availability"
+          }]
+        },
+        {
+          "id": 11,
+          "title": "Error Budget Remaining (30d window)",
+          "type": "stat",
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 8},
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"value": 0, "color": "red"},
+                  {"value": 0.1, "color": "yellow"},
+                  {"value": 0.25, "color": "green"}
+                ]
+              }
+            }
+          },
+          "targets": [{
+            "expr": "({{ .Values.slo.availability.target }} - (1 - sum(rate(http_requests_total{job=\"zerotrust-backend\",status!~\"5..\"}[30d])) / sum(rate(http_requests_total{job=\"zerotrust-backend\"}[30d])))) / (1 - {{ .Values.slo.availability.target }})",
+            "legendFormat": "Error Budget Remaining"
+          }]
+        },
+        {
+          "id": 12,
+          "title": "Latency P99 vs SLO ({{ .Values.slo.latency.thresholdMs }}ms)",
+          "type": "gauge",
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 8},
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"value": 0, "color": "green"},
+                  {"value": 0.3, "color": "yellow"},
+                  {"value": 0.5, "color": "red"}
+                ]
+              }
+            }
+          },
+          "targets": [{
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=\"zerotrust-backend\"}[5m]))",
+            "legendFormat": "P99 Latency"
+          }]
+        },
+        {
+          "id": 13,
+          "title": "Fast Burn Rate (1h window / SLO budget)",
+          "type": "timeseries",
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 8},
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "lineWidth": 2
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "(1 - sum(rate(http_requests_total{job=\"zerotrust-backend\",status!~\"5..\"}[1h])) / sum(rate(http_requests_total{job=\"zerotrust-backend\"}[1h]))) / (1 - {{ .Values.slo.availability.target }}) * (720 / 1)",
+              "legendFormat": "1h Burn Rate"
+            },
+            {
+              "expr": "(1 - sum(rate(http_requests_total{job=\"zerotrust-backend\",status!~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"zerotrust-backend\"}[5m]))) / (1 - {{ .Values.slo.availability.target }}) * (720 / 1)",
+              "legendFormat": "5m Burn Rate"
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "title": "Availability Trend (24h)",
+          "type": "timeseries",
+          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "min": 0.98,
+              "max": 1,
+              "custom": {"lineWidth": 2, "fillOpacity": 10}
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total{job=\"zerotrust-backend\",status!~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"zerotrust-backend\"}[5m]))",
+              "legendFormat": "Availability (5m)"
+            },
+            {
+              "expr": "{{ .Values.slo.availability.target }}",
+              "legendFormat": "SLO Target ({{ .Values.slo.availability.targetPct }}%)"
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "title": "Request Success Rate by Status",
+          "type": "timeseries",
+          "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps"
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum by (status) (rate(http_requests_total{job=\"zerotrust-backend\"}[5m]))",
+              "legendFormat": "{{ "{{" }}status{{ "}}" }}"
+            }
+          ]
+        }
+      ]
+    }
+  {{- end }}
 ---
 # ダッシュボードプロビジョニング設定 ConfigMap
 apiVersion: v1

@@ -373,6 +373,31 @@ resourceQuota:
     # Secret 数上限
     secrets: "30"
 
+# --- SLO/SLI 設定 ---
+# enabled: false → SLO ダッシュボード非表示（開発・CI用）
+# enabled: true  → Grafana SLO パネル表示・Error Budget 追跡（本番用）
+# prometheusRule.enabled: true → PrometheusRule CRD 作成（Prometheus Operator 必須）
+slo:
+  enabled: false
+  # 可用性 SLO 設定
+  availability:
+    # SLO 目標値（小数）- バーンレート計算に使用
+    target: 0.999
+    # SLO 目標値（表示用パーセント文字列）
+    targetPct: "99.9"
+    # 計測窓
+    window: "30d"
+  # レイテンシ SLO 設定
+  latency:
+    # P99 レイテンシ閾値（秒）- PrometheusRule アラート条件に使用
+    thresholdSeconds: "0.5"
+    # P99 レイテンシ閾値（ミリ秒表示用）
+    thresholdMs: "500"
+    window: "30d"
+  # Prometheus Operator PrometheusRule（要 Prometheus Operator CRD）
+  prometheusRule:
+    enabled: false
+
 # --- LimitRange（コンテナデフォルトリソース）---
 # enabled: false → 未作成（開発・CI用）
 # enabled: true  → コンテナ/Pod のデフォルトリソース + Max/Min 制限（本番用）

@@ -1,0 +1,172 @@
+# =============================================
+# SLO/SLI - PrometheusRule（Prometheus Operator 用）
+# slo.prometheusRule.enabled=true の場合のみ作成。
+# Prometheus Operator（monitoring.coreos.com/v1 CRD）が必要。
+#
+# 実装パターン: Multi-Window Multi-Burn-Rate Alerting
+#   - Fast Burn:  1h/5m 窓で Error Budget を急速消費中を検出
+#   - Slow Burn:  6h/30m 窓で Error Budget を緩やかに消費中を検出
+# 参考: Google SRE Workbook Chapter 5
+# =============================================
+{{- if .Values.slo.prometheusRule.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-slo-rules
+  namespace: {{ include "zerotrust.namespace" . | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: slo
+    # Prometheus Operator がこのラベルで PrometheusRule を検出する
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+    # ─────────────────────────────────────────
+    # SLI Recording Rules
+    # 複数の時間窓で可用性比率を事前計算し、
+    # アラート評価・ダッシュボードの高速化に使用する。
+    # ─────────────────────────────────────────
+    - name: zerotrust.sli.recording
+      interval: 30s
+      rules:
+        # 5分窓 可用性 SLI
+        - record: zerotrust:http_availability:ratio_rate5m
+          expr: |
+            sum(rate(http_requests_total{job="zerotrust-backend",status!~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{job="zerotrust-backend"}[5m]))
+
+        # 30分窓 可用性 SLI
+        - record: zerotrust:http_availability:ratio_rate30m
+          expr: |
+            sum(rate(http_requests_total{job="zerotrust-backend",status!~"5.."}[30m]))
+            /
+            sum(rate(http_requests_total{job="zerotrust-backend"}[30m]))
+
+        # 1時間窓 可用性 SLI
+        - record: zerotrust:http_availability:ratio_rate1h
+          expr: |
+            sum(rate(http_requests_total{job="zerotrust-backend",status!~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total{job="zerotrust-backend"}[1h]))
+
+        # 6時間窓 可用性 SLI
+        - record: zerotrust:http_availability:ratio_rate6h
+          expr: |
+            sum(rate(http_requests_total{job="zerotrust-backend",status!~"5.."}[6h]))
+            /
+            sum(rate(http_requests_total{job="zerotrust-backend"}[6h]))
+
+        # P99 レイテンシ SLI（5分窓）
+        - record: zerotrust:http_latency_p99:rate5m
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{job="zerotrust-backend"}[5m])) by (le)
+            )
+
+        # Error Budget 消費率（30日窓に対する1h窓のバーンレート比）
+        # バーンレート = 1 ならば Error Budget をちょうど30日で使い切るペース
+        # バーンレート = 14.4 ならば Fast Burn（2%/1h消費）
+        - record: zerotrust:http_availability:burn_rate1h
+          expr: |
+            (1 - zerotrust:http_availability:ratio_rate1h)
+            /
+            (1 - {{ .Values.slo.availability.target }})
+            *
+            720
+
+        - record: zerotrust:http_availability:burn_rate6h
+          expr: |
+            (1 - zerotrust:http_availability:ratio_rate6h)
+            /
+            (1 - {{ .Values.slo.availability.target }})
+            *
+            120
+
+    # ─────────────────────────────────────────
+    # SLO Burn Rate Alerts
+    # Multi-Window Multi-Burn-Rate Alerting パターン:
+    #   高バーンレート × 短窓 で Fast Burn を検出
+    #   中バーンレート × 長窓 で Slow Burn を検出
+    # ─────────────────────────────────────────
+    - name: zerotrust.slo.alerts
+      rules:
+        # Fast Burn Critical（Error Budget の 2% を 1時間で消費中）
+        # バーンレート 14.4x = 30日分のBudgetを 50時間で消費
+        - alert: ZeroTrustSLOFastBurnCritical
+          expr: |
+            zerotrust:http_availability:burn_rate1h > 14.4
+            and
+            (1 - zerotrust:http_availability:ratio_rate5m) / (1 - {{ .Values.slo.availability.target }}) * 720 > 14.4
+          for: 2m
+          labels:
+            severity: critical
+            slo: availability
+            burn_type: fast
+          annotations:
+            summary: "ZeroTrust SLO Fast Burn - Error Budget 2%/h 消費中"
+            description: |
+              可用性 SLO {{ .Values.slo.availability.targetPct }}% に対して Fast Burn を検出。
+              現在のバーンレート: {{ "{{" }} $value | humanize {{ "}}" }}x（通常の14.4倍以上）。
+              このペースが続くと残り Error Budget が急速に枯渇します。
+              影響サービス: zerotrust-backend
+
+        # Slow Burn Warning（Error Budget の 5% を 6時間で消費中）
+        # バーンレート 6x = 30日分のBudgetを 120時間で消費
+        - alert: ZeroTrustSLOSlowBurnWarning
+          expr: |
+            zerotrust:http_availability:burn_rate6h > 6
+            and
+            (1 - zerotrust:http_availability:ratio_rate30m) / (1 - {{ .Values.slo.availability.target }}) * 720 > 6
+          for: 15m
+          labels:
+            severity: warning
+            slo: availability
+            burn_type: slow
+          annotations:
+            summary: "ZeroTrust SLO Slow Burn - Error Budget 5%/6h 消費中"
+            description: |
+              可用性 SLO {{ .Values.slo.availability.targetPct }}% に対して Slow Burn を検出。
+              現在のバーンレート: {{ "{{" }} $value | humanize {{ "}}" }}x（通常の6倍以上）。
+              今後の Error Budget 枯渇リスクを確認してください。
+              影響サービス: zerotrust-backend
+
+        # P99 レイテンシ SLO 違反
+        - alert: ZeroTrustLatencySLOViolation
+          expr: |
+            zerotrust:http_latency_p99:rate5m > {{ .Values.slo.latency.thresholdSeconds }}
+          for: 5m
+          labels:
+            severity: warning
+            slo: latency
+          annotations:
+            summary: "ZeroTrust Latency SLO 違反 - P99 > {{ .Values.slo.latency.thresholdMs }}ms"
+            description: |
+              P99 レイテンシが SLO 閾値 {{ .Values.slo.latency.thresholdMs }}ms を超過しています。
+              現在値: {{ "{{" }} $value | humanizeDuration {{ "}}" }}
+              対象: zerotrust-backend
+
+        # Error Budget 枯渇警告（月次 Budget の 50% 以上消費）
+        - alert: ZeroTrustErrorBudgetLow
+          expr: |
+            (
+              {{ .Values.slo.availability.target }}
+              -
+              (1 - zerotrust:http_availability:ratio_rate6h)
+            )
+            /
+            (1 - {{ .Values.slo.availability.target }})
+            < 0.5
+          for: 30m
+          labels:
+            severity: warning
+            slo: error-budget
+          annotations:
+            summary: "ZeroTrust Error Budget 50% 以下（月次）"
+            description: |
+              月次 Error Budget の 50% 以上を消費しました。
+              このペースが続くと月末までに SLO 違反になる可能性があります。
+              残り Error Budget: {{ "{{" }} $value | humanizePercentage {{ "}}" }}
+{{- end }}
