@@ -81,6 +81,7 @@
 | **Phase 40** | ResourceQuota + LimitRange | ✅ 完了 | Namespace リソース上限・コンテナデフォルトリソース・DoS対策・Helm chart v1.1.0 (#65) |
 | **Phase 42** | SLO/SLI ダッシュボード | ✅ 完了 | Grafana SLO panels・Error Budget追跡・Multi-Window Burn Rate PrometheusRule・Helm chart v1.2.0 (#66) |
 | **Phase 43** | 本番推奨設定ファイル | ✅ 完了 | values-prod.yaml・セキュリティ全有効化・本番リソース設定・Helm chart v1.3.0 (#67) |
+| **Phase 44** | Helm chart README.md整備 | 🔄 PR中 | ArtifactHub連携・values-prod.yaml使用ガイド・アーキテクチャ図・SLO/SLI設定ドキュメント (#68) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
