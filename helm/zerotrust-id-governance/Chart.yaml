@@ -7,7 +7,7 @@ description: |
   Observability: Prometheus + OTEL + Grafana + Loki + Alertmanager の完全スタック。
   Secrets 管理: ESO + Azure Key Vault Workload Identity 統合。
 type: application
-version: 1.1.0
+version: 1.2.0
 appVersion: "1.0.0"
 keywords:
   - zerotrust
@@ -26,12 +26,12 @@ sources:
 annotations:
   artifacthub.io/changes: |
     - kind: added
+      description: "Phase 42: SLO/SLI ダッシュボード - Grafana SLO panels・Error Budget追跡・Multi-Window Burn Rate PrometheusRule"
+    - kind: added
       description: "Phase 40: ResourceQuota + LimitRange - Namespace リソース上限・コンテナデフォルト設定"
     - kind: added
       description: "Phase 39: Helm OCI Registry publish - ghcr.io 自動公開・STABLE gate連動"
     - kind: added
       description: "Phase 38: GitOps ArgoCD/Flux CD統合 - ArgoCD Application CRD・Flux HelmRelease"
-    - kind: added
-      description: "Phase 37b: namespaceOverride対応 - マルチテナント Helm chart 基盤"
     - kind: changed
-      description: "Chart version 1.0.0 → 1.1.0（Phase 37b〜40 機能追加）"
+      description: "Chart version 1.1.0 → 1.2.0（Phase 42 SLO/SLI 機能追加）"

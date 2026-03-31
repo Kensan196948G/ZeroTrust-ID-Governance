@@ -42,6 +42,8 @@
   Distributed Tracing: {{ if .Values.tracing.enabled }}✅ OTEL + Jaeger 有効{{ else }}❌ 無効{{ end }}
   ResourceQuota:       {{ if .Values.resourceQuota.enabled }}✅ 有効（Namespace リソース上限）{{ else }}❌ 無効{{ end }}
   LimitRange:          {{ if .Values.limitRange.enabled }}✅ 有効（コンテナデフォルトリソース）{{ else }}❌ 無効{{ end }}
+  SLO Dashboard:       {{ if .Values.slo.enabled }}✅ 有効（Grafana SLO/Error Budget パネル・目標{{ .Values.slo.availability.targetPct }}%）{{ else }}❌ 無効{{ end }}
+  PrometheusRule SLO:  {{ if .Values.slo.prometheusRule.enabled }}✅ 有効（Multi-Window Burn Rate アラート）{{ else }}❌ 無効（Prometheus Operator 必要）{{ end }}
 
 🔑 Secrets 管理:
 
