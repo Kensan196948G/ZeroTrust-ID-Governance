@@ -75,4 +75,22 @@ describe('SystemStatusGrid', () => {
     const offlineElements = screen.getAllByText('未接続');
     expect(offlineElements).toHaveLength(3);
   });
+
+  it('fetcher が fetch して r.json() の結果を返す（line 13）', async () => {
+    let capturedFetcher: ((url: string) => Promise<unknown>) | undefined;
+    mockUseSWR.mockImplementation((_key, fn) => {
+      capturedFetcher = fn as (url: string) => Promise<unknown>;
+      return { data: undefined, isLoading: false, error: undefined } as ReturnType<typeof useSWR>;
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ status: 'ok' }),
+    } as Response);
+
+    render(<SystemStatusGrid />);
+
+    expect(capturedFetcher).toBeDefined();
+    const result = await capturedFetcher!('/api/v1/health');
+    expect(result).toEqual({ status: 'ok' });
+  });
 });

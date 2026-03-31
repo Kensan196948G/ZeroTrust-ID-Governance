@@ -196,6 +196,22 @@ describe('AccessRequestsPage', () => {
     expect(screen.getAllByText('(1)')).toHaveLength(2);
   });
 
+  it('却下ボタンクリックで accessApi.reject が呼ばれる（line 39）', async () => {
+    const user = userEvent.setup();
+    setupSWR(mockRequests, false);
+    render(<AccessRequestsPage />);
+
+    const rejectButtons = screen.getAllByRole('button').filter(
+      (btn) => btn.className.includes('rounded-lg') && btn.textContent?.includes('却下')
+    );
+    await user.click(rejectButtons[0]);
+
+    await waitFor(() => {
+      expect(accessApi.reject).toHaveBeenCalledWith('req1');
+    });
+    expect(mockMutate).toHaveBeenCalled();
+  });
+
   it('accessApi.approve が失敗してもクラッシュしない（line 42-43 catch）', async () => {
     const user = userEvent.setup();
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
