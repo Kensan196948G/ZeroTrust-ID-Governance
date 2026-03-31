@@ -146,3 +146,31 @@ serviceMonitor:
   enabled: false
   interval: 30s
   path: /metrics
+
+# --- Secrets 管理（External Secrets Operator）---
+# enabled: false → secret.yaml に REPLACE_ プレースホルダー Secret を作成（開発・CI用）
+# enabled: true  → ExternalSecret CRD 経由で Azure Key Vault から自動同期（本番用）
+externalSecrets:
+  enabled: false
+  azureKeyVault:
+    vaultUrl: "https://your-keyvault-name.vault.azure.net/"
+    tenantId: "REPLACE_WITH_AZURE_TENANT_ID"
+  auth:
+    # workloadIdentity: Azure AD Workload Identity（推奨・Managed Identity）
+    # servicePrincipal: クライアントシークレット方式
+    type: workloadIdentity
+    serviceAccountRef:
+      name: zerotrust-sa
+  # Azure Key Vault からの同期間隔（ISO8601 duration または cron）
+  refreshInterval: "1h"
+  # Kubernetes Secret キー → Azure Key Vault シークレット名 マッピング
+  secretMapping:
+    JWT_SECRET_KEY: zerotrust-jwt-secret-key
+    DATABASE_URL: zerotrust-database-url
+    REDIS_URL: zerotrust-redis-url
+    POSTGRES_PASSWORD: zerotrust-postgres-password
+    AZURE_TENANT_ID: zerotrust-azure-tenant-id
+    AZURE_CLIENT_ID: zerotrust-azure-client-id
+    AZURE_CLIENT_SECRET: zerotrust-azure-client-secret
+    AD_BIND_PASSWORD: zerotrust-ad-bind-password
+    HENGEONE_API_TOKEN: zerotrust-hengeone-api-token
