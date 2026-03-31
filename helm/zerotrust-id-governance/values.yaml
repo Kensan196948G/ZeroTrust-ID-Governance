@@ -163,6 +163,10 @@ redis:
 global:
   imageRegistry: ""
   imagePullSecrets: []
+  # マルチテナント対応: namespace を上書きする場合に設定
+  # 未設定の場合は helm install --namespace で指定した namespace を使用
+  # 例: tenant-a namespace に独立デプロイ → namespaceOverride: "tenant-a"
+  namespaceOverride: ""
 
 # --- Pod セキュリティ設定（全 Pod 共通）---
 podSecurityContext:

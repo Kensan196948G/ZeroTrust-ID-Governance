@@ -13,7 +13,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-default-deny
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -28,7 +28,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-allow-dns
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -48,7 +48,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-backend-to-postgres
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -73,7 +73,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-backend-to-redis
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -98,7 +98,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-frontend-to-backend
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -124,7 +124,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-backend-ingress
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -170,7 +170,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-frontend-ingress
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -195,7 +195,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-postgres-ingress
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -220,7 +220,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-redis-ingress
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -246,7 +246,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-fluentbit-to-loki
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -272,7 +272,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-loki-ingress
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -310,7 +310,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-alertmanager-ingress
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy
@@ -346,7 +346,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: {{ include "zerotrust.fullname" . }}-backend-to-jaeger
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: network-policy

@@ -3,7 +3,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "zerotrust.fullname" . }}-backend
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.backend.labels" . | nindent 4 }}
 spec:
@@ -18,7 +18,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "zerotrust.fullname" . }}-frontend
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.frontend.labels" . | nindent 4 }}
 spec:

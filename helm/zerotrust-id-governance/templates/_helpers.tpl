@@ -85,6 +85,15 @@ app.kubernetes.io/component: frontend
 {{- end }}
 
 {{/*
+Namespace（namespaceOverride 対応・マルチテナント用）
+global.namespaceOverride が設定されている場合はそれを使用し、
+未設定の場合は helm install --namespace で指定した Release.Namespace を使用する。
+*/}}
+{{- define "zerotrust.namespace" -}}
+{{- default .Release.Namespace .Values.global.namespaceOverride }}
+{{- end }}
+
+{{/*
 ServiceAccount 名
 */}}
 {{- define "zerotrust.serviceAccountName" -}}
