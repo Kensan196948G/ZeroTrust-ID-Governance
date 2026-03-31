@@ -345,3 +345,56 @@ alerting:
 # CNI プラグイン（Calico/Cilium 等）がクラスタに必要
 networkPolicy:
   enabled: false
+
+# --- ResourceQuota + LimitRange（本番リソース管理）---
+# enabled: false → 未作成（開発・CI用）
+# enabled: true  → Namespace レベルのリソース上限 + コンテナデフォルト設定（本番用）
+# ノイジーネイバー問題防止・DoS 対策・Namespace 分離を実現
+resourceQuota:
+  enabled: false
+  # Namespace 全体のリソース上限
+  hard:
+    # Pod 数上限
+    pods: "50"
+    # CPU リクエスト合計
+    requests.cpu: "4"
+    # CPU リミット合計
+    limits.cpu: "8"
+    # メモリリクエスト合計
+    requests.memory: "4Gi"
+    # メモリリミット合計
+    limits.memory: "8Gi"
+    # サービス数上限
+    services: "20"
+    # PVC 数上限
+    persistentvolumeclaims: "10"
+    # ConfigMap 数上限
+    configmaps: "30"
+    # Secret 数上限
+    secrets: "30"
+
+# --- LimitRange（コンテナデフォルトリソース）---
+# enabled: false → 未作成（開発・CI用）
+# enabled: true  → コンテナ/Pod のデフォルトリソース + Max/Min 制限（本番用）
+# requests 未設定のコンテナが際限なくリソース消費することを防ぐ
+limitRange:
+  enabled: false
+  # コンテナレベルのリソース制限
+  container:
+    default:
+      cpu: "200m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    max:
+      cpu: "2"
+      memory: "2Gi"
+    min:
+      cpu: "10m"
+      memory: "32Mi"
+  # Pod レベルのリソース制限（コンテナ合計）
+  pod:
+    max:
+      cpu: "4"
+      memory: "4Gi"
