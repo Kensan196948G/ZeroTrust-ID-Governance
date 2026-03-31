@@ -42,6 +42,27 @@ class TestHealthEndpoints:
         assert resp.status_code == 404
 
 
+class TestMetricsEndpoint:
+    """Prometheus メトリクスエンドポイントのテスト"""
+
+    def test_metrics_endpoint_returns_200(self) -> None:
+        """GET /metrics → 200 OK（Prometheusスクレイプ用）"""
+        resp = client.get("/metrics")
+        assert resp.status_code == 200
+
+    def test_metrics_content_type_is_prometheus(self) -> None:
+        """Content-Type が Prometheus テキスト形式"""
+        resp = client.get("/metrics")
+        assert "text/plain" in resp.headers.get("content-type", "")
+
+    def test_metrics_contains_http_requests_total(self) -> None:
+        """http_requests_total メトリクスが含まれる"""
+        # /health に1回アクセスしてメトリクスを生成
+        client.get("/health")
+        resp = client.get("/metrics")
+        assert "http_requests_total" in resp.text
+
+
 class TestSettings:
     """設定クラスのユニットテスト"""
 
