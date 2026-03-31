@@ -201,6 +201,43 @@ grafana:
   prometheusUrl: "http://prometheus-server:9090"
   # Jaeger データソース（tracing.enabled=true の場合のみ有効）
   jaegerUrl: "http://zerotrust-id-governance-jaeger-query:16686"
+  # Loki データソース（logging.enabled=true の場合のみ有効）
+  lokiUrl: "http://zerotrust-id-governance-loki:3100"
+
+# --- ログ収集（Loki + Fluent Bit）---
+# enabled: false → ログ収集無効（開発・CI用）
+# enabled: true  → Loki + Fluent Bit で構造化ログ収集（本番用）
+logging:
+  enabled: false
+  # Loki（ログストレージ）
+  loki:
+    image:
+      repository: grafana/loki
+      tag: "3.4.2"
+    service:
+      port: 3100
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "250m"
+        memory: "256Mi"
+    persistence:
+      enabled: false
+      size: 5Gi
+  # Fluent Bit（ログ収集エージェント）
+  fluentbit:
+    image:
+      repository: fluent/fluent-bit
+      tag: "3.3.6"
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
 
 # --- OpenTelemetry 分散トレーシング ---
 # enabled: false → OTEL_SDK_DISABLED=true（開発・CI用・トレース無効）

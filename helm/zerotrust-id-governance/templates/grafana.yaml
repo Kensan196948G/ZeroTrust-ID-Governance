@@ -32,6 +32,13 @@ data:
         url: {{ .Values.grafana.jaegerUrl | quote }}
         editable: false
       {{- end }}
+      {{- if .Values.logging.enabled }}
+      - name: Loki
+        type: loki
+        access: proxy
+        url: {{ .Values.grafana.lokiUrl | quote }}
+        editable: false
+      {{- end }}
 ---
 # ZeroTrust ID Governance ダッシュボード定義（HTTP RED メトリクス）
 apiVersion: v1

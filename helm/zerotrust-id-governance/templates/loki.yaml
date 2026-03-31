@@ -1,0 +1,170 @@
+# =============================================
+# Loki ログストレージ（開発・ステージング用）
+# logging.enabled=true の場合のみ作成。
+# 本番環境では Grafana Cloud Logs または
+# Loki Operator（grafana/loki Helm chart）を推奨。
+# =============================================
+{{- if .Values.logging.enabled }}
+---
+# Loki 設定 ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-loki-config
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+data:
+  loki.yaml: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9096
+    common:
+      instance_addr: 127.0.0.1
+      path_prefix: /tmp/loki
+      storage:
+        filesystem:
+          chunks_directory: /tmp/loki/chunks
+          rules_directory: /tmp/loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+    query_range:
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+            max_size_mb: 100
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+    analytics:
+      reporting_enabled: false
+---
+# Loki StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-loki
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: loki
+  serviceName: {{ include "zerotrust.fullname" . }}-loki-headless
+  template:
+    metadata:
+      labels:
+        {{- include "zerotrust.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: loki
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: loki
+          image: "{{ .Values.logging.loki.image.repository }}:{{ .Values.logging.loki.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/loki/loki.yaml
+          ports:
+            - name: http
+              containerPort: 3100
+              protocol: TCP
+            - name: grpc
+              containerPort: 9096
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            {{- toYaml .Values.logging.loki.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "zerotrust.fullname" . }}-loki-config
+---
+# Loki Service（Fluent Bit / Grafana からのアクセス用）
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-loki
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "zerotrust.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+  ports:
+    - name: http
+      port: {{ .Values.logging.loki.service.port }}
+      targetPort: http
+      protocol: TCP
+---
+# Loki Headless Service（StatefulSet ステーブル DNS 用）
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-loki-headless
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- include "zerotrust.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: loki
+  ports:
+    - name: http
+      port: {{ .Values.logging.loki.service.port }}
+      targetPort: http
+      protocol: TCP
+{{- end }}
