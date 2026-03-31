@@ -78,6 +78,7 @@
 | **Phase 37b** | namespaceOverride対応 | ✅ 完了 | マルチテナント Helm chart 基盤・global.namespaceOverride・全テンプレート統一 (#61) |
 | **Phase 38** | GitOps ArgoCD/Flux CD | ✅ 完了 | ArgoCD Application CRD・Flux HelmRelease・gitops/ ディレクトリ・GitOps フロー確立 (#62) |
 | **Phase 39** | Helm OCI Registry publish | ✅ 完了 | CI helm-publish job・ghcr.io/kensan196948g/charts v1.0.0・STABLE gate 連動・lowercase修正 (#63, #64) |
+| **Phase 40** | ResourceQuota + LimitRange | ✅ 完了 | Namespace リソース上限・コンテナデフォルトリソース・DoS対策・Helm chart v1.1.0 (#65) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -607,7 +608,7 @@ MIT License - [LICENSE](LICENSE)
 | フロントエンドカバレッジ | **100% Stmts / 94.44% Branch** | Phase 26b |
 | E2E テスト | Playwright + Newman | Phase 15 |
 | CI 成功率 | **100%**（連続 N=5 STABLE） | Phase 27 |
-| GitHub Actions | **8ジョブ**（helm-lint 追加・Node.js 24 完全移行） | Phase 27 |
+| GitHub Actions | **9ジョブ**（helm-publish OCI追加・Node.js 24 完全移行） | Phase 27/39 |
 | 供給チェーン対策 | trivy-action@0.35.0（@master 禁止・2026/03攻撃対策） | Phase 24b |
 | Kubernetes/Helm | **Helm chart 作成**（Backend/Frontend/Ingress/HPA・本番 SecurityContext 対応） | Phase 27 |
 | Observability | **Prometheus `/metrics`**（prometheus-fastapi-instrumentator・HTTP REDメトリクス自動収集） | Phase 28 |
@@ -621,6 +622,10 @@ MIT License - [LICENSE](LICENSE)
 | 高可用性（HA） | **PodDisruptionBudget**（backend/frontend minAvailable:1・ノードドレイン保護・ゼロダウンタイム） | Phase 36 ✅ |
 | オートスケール | **HPA デュアルメトリクス**（CPU+メモリ複合スケール・frontend HPA追加・autoscaling/v2） | Phase 36 ✅ |
 | HPA安定制御 | **HPA Behavior**（scaleDown 300s安定確認・25%/60s制限・scaleUp 100%/30s・スパイク保護） | Phase 37a ✅ |
+| マルチテナント | **namespaceOverride対応**（global.namespaceOverride・全テンプレート zerotrust.namespace統一） | Phase 37b ✅ |
+| GitOps | **ArgoCD Application CRD + Flux HelmRelease**（本番/ステージング・自動sync・ignoreDifferences HPA保護） | Phase 38 ✅ |
+| Helm OCI配布 | **ghcr.io/kensan196948g/charts v1.0.0**（CI helm-publish・STABLE gate連動・OCI lowercase対応） | Phase 39 ✅ |
+| リソース管理 | **ResourceQuota + LimitRange**（Namespace上限・コンテナデフォルト・DoS対策・ノイジーネイバー防止） | Phase 40 ✅ |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -629,4 +634,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜37a 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・**Helm chart v1.0.0 正式リリース**（GitHub Release helm-chart-v1.0.0）・CI 8ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 5本柱 + Alertmanager アラート通知 + NetworkPolicy Zero Trust ネットワーク・ESO Azure Key Vault Secrets管理・**PodDisruptionBudget + HPA behavior（スケールダウン保護・デュアルメトリクス）によるゼロダウンタイム高可用性達成***
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜40 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・**Helm chart v1.1.0**（ResourceQuota + LimitRange 追加）・CI 9ジョブ対応・Prometheus + OTEL + Grafana + Loki Observability 5本柱 + Alertmanager アラート通知 + NetworkPolicy Zero Trust ネットワーク・ESO Azure Key Vault Secrets管理・**PodDisruptionBudget + HPA behavior + GitOps ArgoCD/Flux + Helm OCI ghcr.io publish + ResourceQuota/LimitRange 本番リソース管理***
