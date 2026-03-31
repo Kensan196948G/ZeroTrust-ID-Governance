@@ -1,0 +1,91 @@
+# =============================================
+# Jaeger All-in-One（開発・ステージング用）
+# tracing.jaeger.enabled=true の場合のみ作成。
+# 本番環境では Jaeger Operator または
+# マネージドトレーシング基盤（Azure Monitor等）を推奨。
+# =============================================
+{{- if and .Values.tracing.enabled .Values.tracing.jaeger.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-jaeger
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "zerotrust.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: jaeger
+  template:
+    metadata:
+      labels:
+        {{- include "zerotrust.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: jaeger
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: jaeger
+          image: "{{ .Values.tracing.jaeger.image.repository }}:{{ .Values.tracing.jaeger.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: query
+              containerPort: {{ .Values.tracing.jaeger.service.queryPort }}
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: {{ .Values.tracing.jaeger.service.collectorPort }}
+              protocol: TCP
+          env:
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-jaeger-collector
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: jaeger
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "zerotrust.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: jaeger
+  ports:
+    - name: otlp-grpc
+      port: {{ .Values.tracing.jaeger.service.collectorPort }}
+      targetPort: otlp-grpc
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "zerotrust.fullname" . }}-jaeger-query
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zerotrust.labels" . | nindent 4 }}
+    app.kubernetes.io/component: jaeger
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "zerotrust.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: jaeger
+  ports:
+    - name: query
+      port: {{ .Values.tracing.jaeger.service.queryPort }}
+      targetPort: query
+      protocol: TCP
+{{- end }}

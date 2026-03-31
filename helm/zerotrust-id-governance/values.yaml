@@ -174,3 +174,21 @@ externalSecrets:
     AZURE_CLIENT_SECRET: zerotrust-azure-client-secret
     AD_BIND_PASSWORD: zerotrust-ad-bind-password
     HENGEONE_API_TOKEN: zerotrust-hengeone-api-token
+
+# --- OpenTelemetry 分散トレーシング ---
+# enabled: false → OTEL_SDK_DISABLED=true（開発・CI用・トレース無効）
+# enabled: true  → Jaeger OTLP エンドポイントへトレース送信（本番用）
+tracing:
+  enabled: false
+  # Jaeger OTLP gRPC エンドポイント
+  # Kubernetes 内部 DNS: http://<release>-jaeger-collector:4317
+  otlpEndpoint: "http://zerotrust-id-governance-jaeger-collector:4317"
+  # Jaeger All-in-One（開発・ステージング用）
+  jaeger:
+    enabled: false
+    image:
+      repository: jaegertracing/all-in-one
+      tag: "1.62"
+    service:
+      queryPort: 16686
+      collectorPort: 4317

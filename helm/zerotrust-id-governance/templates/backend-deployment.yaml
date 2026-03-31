@@ -40,6 +40,15 @@ spec:
               value: {{ .Values.backend.env.ALLOWED_ORIGINS | quote }}
             - name: ALLOWED_HOSTS
               value: {{ .Values.backend.env.ALLOWED_HOSTS | quote }}
+            # OpenTelemetry トレーシング設定
+            - name: OTEL_SDK_DISABLED
+              value: {{ if .Values.tracing.enabled }}"false"{{ else }}"true"{{ end }}
+            {{- if .Values.tracing.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.tracing.otlpEndpoint | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: "zerotrust-id-governance"
+            {{- end }}
           envFrom:
             - secretRef:
                 name: {{ .Values.backend.secretRef.name }}
