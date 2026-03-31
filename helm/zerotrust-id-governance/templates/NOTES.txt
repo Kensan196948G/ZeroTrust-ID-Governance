@@ -1,0 +1,61 @@
+🎉 ZeroTrust ID Governance v{{ .Chart.AppVersion }} のインストールが完了しました！
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🔐 Zero Trust IAM Platform - Kubernetes
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📦 リリース情報:
+  Name:      {{ .Release.Name }}
+  Namespace: {{ .Release.Namespace }}
+  Chart:     {{ .Chart.Name }}-{{ .Chart.Version }}
+
+🌐 アクセス方法:
+
+  {{- if .Values.ingress.enabled }}
+  {{- range .Values.ingress.hosts }}
+  Frontend:  https://{{ .host }}
+  API:       https://{{ .host }}/api
+  {{- end }}
+  {{- else }}
+  # Ingress 無効。ポートフォワードでアクセス:
+  kubectl port-forward svc/{{ include "zerotrust.fullname" . }}-frontend 3000:3000 -n {{ .Release.Namespace }}
+  kubectl port-forward svc/{{ include "zerotrust.fullname" . }}-backend 8000:8000 -n {{ .Release.Namespace }}
+  {{- end }}
+
+📊 Observability:
+
+  {{- if .Values.grafana.enabled }}
+  Grafana:   http://localhost:3001 (kubectl port-forward svc/{{ include "zerotrust.fullname" . }}-grafana 3001:{{ .Values.grafana.service.port }} -n {{ .Release.Namespace }})
+  {{- end }}
+  {{- if .Values.tracing.jaeger.enabled }}
+  Jaeger:    http://localhost:16686 (kubectl port-forward svc/{{ include "zerotrust.fullname" . }}-jaeger-query 16686:{{ .Values.tracing.jaeger.service.queryPort }} -n {{ .Release.Namespace }})
+  {{- end }}
+
+⚙️ 有効化されているオプション:
+
+  Prometheus Scraping: {{ if ((.Values.backend).env) }}✅ /metrics エンドポイント自動収集{{ else }}⚠️ 設定を確認{{ end }}
+  External Secrets:    {{ if .Values.externalSecrets.enabled }}✅ Azure Key Vault 統合済み{{ else }}❌ 無効（開発モード）{{ end }}
+  Grafana Dashboard:   {{ if .Values.grafana.enabled }}✅ 有効{{ else }}❌ 無効{{ end }}
+  Loki Log Collection: {{ if .Values.logging.enabled }}✅ 有効（Fluent Bit DaemonSet）{{ else }}❌ 無効{{ end }}
+  Alertmanager:        {{ if .Values.alerting.enabled }}✅ 有効（Slack/Teams通知）{{ else }}❌ 無効{{ end }}
+  NetworkPolicy:       {{ if .Values.networkPolicy.enabled }}✅ 有効（Zero Trust Deny All）{{ else }}❌ 無効{{ end }}
+  Distributed Tracing: {{ if .Values.tracing.enabled }}✅ OTEL + Jaeger 有効{{ else }}❌ 無効{{ end }}
+
+🔑 Secrets 管理:
+
+  {{- if .Values.externalSecrets.enabled }}
+  Azure Key Vault: {{ .Values.externalSecrets.azureKeyVault.vaultUrl }}
+  同期間隔:        {{ .Values.externalSecrets.refreshInterval }}
+  {{- else }}
+  ⚠️  開発モード: zerotrust-secrets に REPLACE_ プレースホルダーが設定されています。
+      本番環境では externalSecrets.enabled=true を設定し、
+      Azure Key Vault から自動同期してください。
+  {{- end }}
+
+📚 ドキュメント:
+  GitHub: https://github.com/Kensan196948G/ZeroTrust-ID-Governance
+  API Docs: https://{{ (first .Values.ingress.hosts).host }}/api/docs (Ingress有効時)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🏗 Built with ClaudeOS v4 × GitHub Actions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
