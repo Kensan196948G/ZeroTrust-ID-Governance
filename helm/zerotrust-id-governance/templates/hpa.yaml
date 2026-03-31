@@ -28,6 +28,33 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.backend.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
+  {{- if .Values.backend.autoscaling.behavior }}
+  behavior:
+    {{- if .Values.backend.autoscaling.behavior.scaleDown }}
+    scaleDown:
+      stabilizationWindowSeconds: {{ .Values.backend.autoscaling.behavior.scaleDown.stabilizationWindowSeconds }}
+      {{- if .Values.backend.autoscaling.behavior.scaleDown.policies }}
+      policies:
+        {{- range .Values.backend.autoscaling.behavior.scaleDown.policies }}
+        - type: {{ .type }}
+          value: {{ .value }}
+          periodSeconds: {{ .periodSeconds }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.backend.autoscaling.behavior.scaleUp }}
+    scaleUp:
+      stabilizationWindowSeconds: {{ .Values.backend.autoscaling.behavior.scaleUp.stabilizationWindowSeconds }}
+      {{- if .Values.backend.autoscaling.behavior.scaleUp.policies }}
+      policies:
+        {{- range .Values.backend.autoscaling.behavior.scaleUp.policies }}
+        - type: {{ .type }}
+          value: {{ .value }}
+          periodSeconds: {{ .periodSeconds }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
 {{- end }}
 {{- if .Values.frontend.autoscaling.enabled }}
 ---
@@ -60,4 +87,31 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.frontend.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
+  {{- if .Values.frontend.autoscaling.behavior }}
+  behavior:
+    {{- if .Values.frontend.autoscaling.behavior.scaleDown }}
+    scaleDown:
+      stabilizationWindowSeconds: {{ .Values.frontend.autoscaling.behavior.scaleDown.stabilizationWindowSeconds }}
+      {{- if .Values.frontend.autoscaling.behavior.scaleDown.policies }}
+      policies:
+        {{- range .Values.frontend.autoscaling.behavior.scaleDown.policies }}
+        - type: {{ .type }}
+          value: {{ .value }}
+          periodSeconds: {{ .periodSeconds }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.frontend.autoscaling.behavior.scaleUp }}
+    scaleUp:
+      stabilizationWindowSeconds: {{ .Values.frontend.autoscaling.behavior.scaleUp.stabilizationWindowSeconds }}
+      {{- if .Values.frontend.autoscaling.behavior.scaleUp.policies }}
+      policies:
+        {{- range .Values.frontend.autoscaling.behavior.scaleUp.policies }}
+        - type: {{ .type }}
+          value: {{ .value }}
+          periodSeconds: {{ .periodSeconds }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
 {{- end }}
