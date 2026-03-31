@@ -1,0 +1,118 @@
+# =============================================
+# ArgoCD Application - ZeroTrust ID Governance
+# =============================================
+# ArgoCD が Git リポジトリを監視し、Helm chart を
+# Kubernetes クラスタへ自動同期する Application CRD。
+#
+# 前提: ArgoCD が argocd namespace にインストール済みであること
+# インストール: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+#
+# 使用方法:
+#   kubectl apply -f gitops/argocd/application.yaml
+#
+# 複数テナントへのデプロイは application-tenant-a.yaml など
+# テナント別ファイルを作成し namespaceOverride を設定すること。
+# =============================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zerotrust-id-governance
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: zerotrust-id-governance
+    app.kubernetes.io/managed-by: argocd
+  # ArgoCD が管理する Application は自動的にガベージコレクションされる
+  # finalizers を設定することで削除時にリソースも削除される
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # ArgoCD Notifications 設定（Slack通知等）はここに追加
+    # notifications.argoproj.io/subscribe.on-sync-succeeded.slack: zerotrust-alerts
+spec:
+  # --- ArgoCD プロジェクト ---
+  project: default
+
+  # --- ソース（Git リポジトリ + Helm chart）---
+  source:
+    repoURL: https://github.com/Kensan196948G/ZeroTrust-ID-Governance.git
+    targetRevision: main  # 監視ブランチ（本番: main / ステージング: develop）
+    path: helm/zerotrust-id-governance
+
+    # Helm 設定
+    helm:
+      # values.yaml を上書きするパラメータ（機密値は Secret で別管理）
+      # 本番環境では values-production.yaml を用意し valuesFiles で指定を推奨
+      parameters:
+        # デプロイ先 namespace
+        - name: global.namespaceOverride
+          value: ""  # 空文字 = helm install --namespace の namespace を使用
+
+        # イメージタグ（CI/CD パイプラインが自動更新）
+        - name: backend.image.tag
+          value: "latest"
+        - name: frontend.image.tag
+          value: "latest"
+
+        # Secrets 管理（本番: ESO + Azure Key Vault）
+        - name: externalSecrets.enabled
+          value: "false"  # 本番: "true" に変更
+
+        # NetworkPolicy（本番: "true" に変更・CNI必要）
+        - name: networkPolicy.enabled
+          value: "false"
+
+        # HPA 自動スケーリング（本番: "true" に変更）
+        - name: backend.autoscaling.enabled
+          value: "false"
+        - name: frontend.autoscaling.enabled
+          value: "false"
+
+      # 追加 values ファイル（gitops/argocd/values-production.yaml を作成して使用）
+      # valuesFiles:
+      #   - values.yaml
+      #   - ../../gitops/argocd/values-production.yaml
+
+  # --- デプロイ先クラスタ ---
+  destination:
+    server: https://kubernetes.default.svc  # 同一クラスタ内へのデプロイ
+    namespace: zerotrust  # helm install --namespace に相当
+
+  # --- 同期ポリシー ---
+  syncPolicy:
+    # 自動同期（Git push → 自動デプロイ）
+    automated:
+      prune: true     # Git から削除されたリソースを Kubernetes からも削除
+      selfHeal: true  # 手動変更があった場合に Git の状態に戻す
+      allowEmpty: false
+
+    # 同期オプション
+    syncOptions:
+      - CreateNamespace=true    # namespace が存在しない場合に自動作成
+      - PrunePropagationPolicy=foreground  # リソース削除の伝播ポリシー
+      - PruneLast=true          # 削除は最後に実行（安全な更新順序）
+      - ServerSideApply=true    # Server-Side Apply でフィールド所有権を管理
+
+    # ロールバック設定
+    retry:
+      limit: 3  # 同期失敗時のリトライ回数
+      backoff:
+        duration: 5s    # 初回リトライ待機
+        factor: 2       # 指数バックオフ係数
+        maxDuration: 3m  # 最大待機時間
+
+  # --- ヘルスチェック設定 ---
+  # ArgoCD はデフォルトで Deployment/Service 等のヘルスを確認
+  # カスタムヘルスチェックが必要な場合は argocd-cm ConfigMap に追記
+
+  # --- 差分無視設定 ---
+  # HPA の currentReplicas 等、実行時に変化するフィールドを差分比較から除外
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # HPA が管理するレプリカ数を無視
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+      jsonPointers:
+        - /status
