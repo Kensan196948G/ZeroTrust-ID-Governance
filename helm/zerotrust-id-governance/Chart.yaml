@@ -7,7 +7,7 @@ description: |
   Observability: Prometheus + OTEL + Grafana + Loki + Alertmanager の完全スタック。
   Secrets 管理: ESO + Azure Key Vault Workload Identity 統合。
 type: application
-version: 1.0.0
+version: 1.1.0
 appVersion: "1.0.0"
 keywords:
   - zerotrust
@@ -26,12 +26,12 @@ sources:
 annotations:
   artifacthub.io/changes: |
     - kind: added
-      description: "Phase 33: Alertmanager v0.27.0 + Prometheus Alert Rules 5件 + Slack/Teams通知"
+      description: "Phase 40: ResourceQuota + LimitRange - Namespace リソース上限・コンテナデフォルト設定"
     - kind: added
-      description: "Phase 34: NetworkPolicy Zero Trust（デフォルトDeny + 明示的許可・Pod間通信最小権限）"
+      description: "Phase 39: Helm OCI Registry publish - ghcr.io 自動公開・STABLE gate連動"
     - kind: added
-      description: "Phase 32: Loki 3.4.2 StatefulSet + Fluent Bit 3.3.6 DaemonSet（Observability完全体）"
-    - kind: security
-      description: "ESO ExternalSecret + Azure Key Vault Workload Identity統合"
+      description: "Phase 38: GitOps ArgoCD/Flux CD統合 - ArgoCD Application CRD・Flux HelmRelease"
+    - kind: added
+      description: "Phase 37b: namespaceOverride対応 - マルチテナント Helm chart 基盤"
     - kind: changed
-      description: "Chart version 0.1.0 → 1.0.0（API安定化・34フェーズ機能完成）"
+      description: "Chart version 1.0.0 → 1.1.0（Phase 37b〜40 機能追加）"
