@@ -48,3 +48,6 @@ tenacity==9.0.0
 
 # --- Background Tasks ---
 apscheduler==3.10.4
+
+# --- Observability (Prometheus metrics) ---
+prometheus-fastapi-instrumentator==7.1.0

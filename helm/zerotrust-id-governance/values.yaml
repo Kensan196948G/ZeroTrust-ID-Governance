@@ -138,3 +138,11 @@ serviceAccount:
   create: true
   name: zerotrust-sa
   annotations: {}
+
+# --- Observability ---
+# prometheus.io/scrape アノテーションは backend-deployment.yaml に直接定義済み
+# Prometheus Operator を使用する場合は以下を有効化
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  path: /metrics

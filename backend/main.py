@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from api.v1 import access, audit, auth, roles, users, workflows
 from core.audit_middleware import AuditLoggingMiddleware
@@ -108,6 +109,11 @@ app.include_router(roles.router, prefix="/api/v1", tags=["Roles"])
 app.include_router(access.router, prefix="/api/v1", tags=["Access Requests"])
 app.include_router(workflows.router, prefix="/api/v1", tags=["Workflows"])
 app.include_router(audit.router, prefix="/api/v1", tags=["Audit Logs"])
+
+
+# --- Prometheus メトリクス（内部監視用 /metrics エンドポイント）---
+# ISO27001 A.8.16: セキュリティ監視 / NIST CSF DE.CM-01: 継続的モニタリング
+Instrumentator().instrument(app).expose(app, include_in_schema=False, tags=["System"])
 
 
 # --- ヘルスチェック ---
