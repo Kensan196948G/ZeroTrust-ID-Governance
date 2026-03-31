@@ -11,7 +11,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "zerotrust.fullname" . }}-loki-config
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki
@@ -58,7 +58,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "zerotrust.fullname" . }}-loki
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki
@@ -132,7 +132,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "zerotrust.fullname" . }}-loki
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki
@@ -152,7 +152,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "zerotrust.fullname" . }}-loki-headless
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki

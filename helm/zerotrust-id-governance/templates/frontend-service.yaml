@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "zerotrust.fullname" . }}-frontend
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "zerotrust.namespace" . | quote }}
   labels:
     {{- include "zerotrust.frontend.labels" . | nindent 4 }}
 spec:
