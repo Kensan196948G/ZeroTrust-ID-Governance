@@ -1,0 +1,66 @@
+# =============================================
+# ArgoCD Application - ZeroTrust ID Governance (Staging)
+# =============================================
+# ステージング環境用 ArgoCD Application。
+# develop ブランチを監視し zerotrust-staging namespace にデプロイ。
+# =============================================
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: zerotrust-id-governance-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: zerotrust-id-governance
+    app.kubernetes.io/instance: staging
+    app.kubernetes.io/managed-by: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Kensan196948G/ZeroTrust-ID-Governance.git
+    targetRevision: develop  # ステージング: develop ブランチを監視
+    path: helm/zerotrust-id-governance
+    helm:
+      parameters:
+        - name: global.namespaceOverride
+          value: "zerotrust-staging"
+        - name: backend.image.tag
+          value: "develop-latest"
+        - name: frontend.image.tag
+          value: "develop-latest"
+        - name: externalSecrets.enabled
+          value: "false"
+        - name: networkPolicy.enabled
+          value: "false"
+        # ステージングは Observability を有効化してトレーシング検証
+        - name: tracing.enabled
+          value: "true"
+        - name: grafana.enabled
+          value: "true"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: zerotrust-staging
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

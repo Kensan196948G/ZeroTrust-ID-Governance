@@ -1,0 +1,106 @@
+# =============================================
+# Flux CD HelmRelease - ZeroTrust ID Governance
+# =============================================
+# Flux CD (Flux v2) で Helm chart を GitOps 管理する HelmRelease CRD。
+#
+# 前提: Flux が flux-system namespace にインストール済みであること
+# インストール: flux bootstrap github --owner=Kensan196948G --repository=ZeroTrust-ID-Governance
+#
+# Flux は GitRepository → HelmRelease の依存関係で自動同期を実現する。
+# =============================================
+
+---
+# GitRepository: Flux が監視する Git ソース定義
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: zerotrust-id-governance
+  namespace: flux-system
+spec:
+  interval: 1m  # 1分ごとに Git リポジトリをポーリング
+  url: https://github.com/Kensan196948G/ZeroTrust-ID-Governance.git
+  ref:
+    branch: main
+  # プライベートリポジトリの場合は Secret 参照
+  # secretRef:
+  #   name: github-token
+
+---
+# HelmRelease: Flux が管理する Helm chart デプロイ定義
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: zerotrust-id-governance
+  namespace: zerotrust  # デプロイ先 namespace
+spec:
+  # 同期間隔（Helm release の状態確認と差分検出）
+  interval: 5m
+
+  # Helm chart ソース（GitRepository 参照）
+  chart:
+    spec:
+      chart: helm/zerotrust-id-governance  # リポジトリ内の chart パス
+      version: ">=1.0.0"
+      sourceRef:
+        kind: GitRepository
+        name: zerotrust-id-governance
+        namespace: flux-system
+      interval: 1m
+
+  # --- values オーバーライド ---
+  values:
+    global:
+      namespaceOverride: ""  # 空文字 = HelmRelease の namespace を使用
+
+    backend:
+      image:
+        tag: "latest"
+      autoscaling:
+        enabled: false  # 本番: true
+
+    frontend:
+      image:
+        tag: "latest"
+      autoscaling:
+        enabled: false  # 本番: true
+
+    externalSecrets:
+      enabled: false  # 本番: true（Azure Key Vault連携）
+
+    networkPolicy:
+      enabled: false  # 本番: true（CNI必要）
+
+  # --- 機密値の注入（Kubernetes Secret 参照）---
+  # valuesFrom:
+  #   - kind: Secret
+  #     name: zerotrust-helm-values
+  #     valuesKey: values.yaml
+
+  # --- インストール設定 ---
+  install:
+    createNamespace: true   # namespace が存在しない場合に自動作成
+    remediation:
+      retries: 3  # インストール失敗時のリトライ回数
+
+  # --- アップグレード設定 ---
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true  # 最後の失敗を自動修復
+    cleanupOnFail: true  # アップグレード失敗時に新リソースをクリーンアップ
+
+  # --- ロールバック設定 ---
+  rollback:
+    timeout: 5m
+    cleanupOnFail: true
+
+  # --- HPA が管理するレプリカ数を Flux の差分比較から除外 ---
+  postRenderers:
+    - kustomize:
+        patches:
+          - patch: |
+              - op: remove
+                path: /spec/replicas
+            target:
+              kind: Deployment
+              labelSelector: "app.kubernetes.io/name=zerotrust-id-governance"
