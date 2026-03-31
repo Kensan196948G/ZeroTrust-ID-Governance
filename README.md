@@ -66,7 +66,7 @@
 | **Phase 26b** | フロントエンド Stmts 100% 達成 | ✅ 完了 | AccessRequests reject 成功パス・SystemStatusGrid fetcher カバー・**Stmts 100%**・168テスト |
 | **Phase 27** | 本番デプロイ準備 | ✅ 完了 | Backend Dockerfileマルチステージ最適化・Helm chart作成・CI helm lint追加（8ジョブ） |
 | **Phase 28** | Observability強化 | ✅ 完了 | Prometheus `/metrics`エンドポイント・Helm scrape annotation・13+3=13テスト (#51) |
-| **Phase 29** | Secrets管理強化 | 🔄 PR#52 | ESO ExternalSecret + Azure Key Vault統合・Workload Identity・secret.yaml条件化 |
+| **Phase 29** | Secrets管理強化 | ✅ 完了 | ESO ExternalSecret + Azure Key Vault統合・Workload Identity・secret.yaml条件化 (#52) |
 | **Docs** | 包括的ドキュメント整備 | ✅ 完了 | 12フォルダ・60ファイル・全仕様書体系 |
 
 ---
@@ -600,7 +600,7 @@ MIT License - [LICENSE](LICENSE)
 | 供給チェーン対策 | trivy-action@0.35.0（@master 禁止・2026/03攻撃対策） | Phase 24b |
 | Kubernetes/Helm | **Helm chart 作成**（Backend/Frontend/Ingress/HPA・本番 SecurityContext 対応） | Phase 27 |
 | Observability | **Prometheus `/metrics`**（prometheus-fastapi-instrumentator・HTTP REDメトリクス自動収集） | Phase 28 |
-| Secrets管理 | **ESO ExternalSecret + Azure Key Vault**（Workload Identity・refreshInterval 1h・secretMapping 9キー） | Phase 29 🔄 |
+| Secrets管理 | **ESO ExternalSecret + Azure Key Vault**（Workload Identity・refreshInterval 1h・secretMapping 9キー） | Phase 29 ✅ |
 | セキュリティヘッダー | **15項目**（HSTS/CSP/等） | Phase 14 |
 | レート制限 | ログイン 5回/分、API 100回/分 | Phase 14 |
 | 監査ログイベント種別 | **28種類** | Phase 13 |
@@ -609,4 +609,4 @@ MIT License - [LICENSE](LICENSE)
 
 ---
 
-*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜28 完了・Phase 29 PR#52 🔄・STABLE N=5 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・Helm chart + CI 8ジョブ対応・Prometheus Observability統合・ESO Azure Key Vault Secrets管理*
+*🤖 Built with [ClaudeOS v4](https://claude.ai/claude-code) × GitHub Actions — Phase 1〜29 完了・STABLE N=3 達成・本番脆弱性 0件・フロントエンド Statements **100%** 達成・Helm chart + CI 8ジョブ対応・Prometheus Observability統合・ESO Azure Key Vault Secrets管理*
