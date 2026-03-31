@@ -58,7 +58,7 @@ data:
           "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
           "targets": [{
             "expr": "rate(http_requests_total{job=\"zerotrust-backend\"}[5m])",
-            "legendFormat": "{{method}} {{handler}} {{status}}"
+            "legendFormat": "{{ "{{" }}method{{ "}}" }} {{ "{{" }}handler{{ "}}" }} {{ "{{" }}status{{ "}}" }}"
           }]
         },
         {
